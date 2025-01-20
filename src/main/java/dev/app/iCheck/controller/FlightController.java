@@ -93,4 +93,24 @@ public class FlightController {
            return ResponseEntity.status(500).body("Wystąpił błąd: " + e.getMessage());
        }
    }
+
+   @DeleteMapping("/{flightId}/passengers/{passengerId}")
+   public ResponseEntity<?> deletePassenger(
+           @PathVariable String flightId,
+           @PathVariable String passengerId) {
+       try {
+           Flight flight = flightRepository.findById(flightId)
+                   .orElseThrow(() -> new ResourceNotFoundException("Flight not found"));
+           Passenger passenger = passengerRepository.findById(passengerId)
+                   .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
+
+           flight.getPassengers();
+           flightRepository.save(flight);
+           passengerRepository.delete(passenger);
+
+           return ResponseEntity.ok("Passenger deleted successfully");
+       } catch (Exception e) {
+           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+       }
+   }
 }

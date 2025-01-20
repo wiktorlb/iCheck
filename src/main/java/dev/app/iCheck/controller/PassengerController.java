@@ -71,7 +71,7 @@ public class PassengerController {
         return passengers;
     }
 
-    @DeleteMapping("/{flightId}/passengers/{passengerId}")
+/*     @DeleteMapping("/{flightId}/passengers/{passengerId}")
     public ResponseEntity<?> deletePassenger(
             @PathVariable String flightId,
             @PathVariable String passengerId) {
@@ -94,5 +94,5 @@ public class PassengerController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
-    }
+    } */
 }
