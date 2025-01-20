@@ -113,4 +113,24 @@ public class FlightController {
            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
        }
    }
+
+ @DeleteMapping("/{flightId}")
+public ResponseEntity<?> deleteFlight(@PathVariable String flightId) {
+    try {
+        // Pobierz lot lub rzuć wyjątek
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found"));
+
+        // Usuń powiązanych pasażerów
+        List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
+        passengerRepository.deleteAll(passengers);
+
+        // Usuń lot
+        flightRepository.delete(flight);
+
+        return ResponseEntity.ok("Flight and associated passengers deleted successfully.");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+    }
+}
 }
