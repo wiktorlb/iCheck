@@ -1,5 +1,7 @@
 package dev.app.iCheck.model;
 
+import java.util.List;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -13,12 +15,15 @@ public class Flight {
 
     @Id
     private String id;
+
     private String flightNumber;
     private String route;
     private String state;
     private String departureTime;
     private String departureDate;
+
     private Destination destination; // Powiązanie z obiektem Destination
+    private List<Passenger> passengers; // Lista pasażerów
 
     // Domyślny konstruktor
     public Flight() {
@@ -70,5 +75,22 @@ public class Flight {
     public void setDepartureDate(String departureDate) {
         this.departureDate = departureDate;
     }
+
+    public Destination getDestination() {
+        return destination;
+    }
+
+    public void setDestination(Destination destination) {
+        this.destination = destination;
+    }
+
+    public List<Passenger> getPassengers() {
+        return passengers;
+    }
+
+    public void setPassengers(List<Passenger> passengers) {
+        this.passengers = passengers;
+    }
+
 
 }

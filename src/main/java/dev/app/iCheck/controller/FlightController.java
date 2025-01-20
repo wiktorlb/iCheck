@@ -1,6 +1,7 @@
 package dev.app.iCheck.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,6 +11,7 @@ import dev.app.iCheck.model.Passenger;
 import dev.app.iCheck.repository.DestinationRepository;
 import dev.app.iCheck.repository.FlightRepository;
 import dev.app.iCheck.repository.PassengerRepository;
+import dev.app.iCheck.service.FlightService;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,8 +27,10 @@ public class FlightController {
     private DestinationRepository destinationRepository;
 
     @Autowired
-    private PassengerRepository passengerRepository;
+    private FlightService flightService;
 
+    @Autowired
+    private PassengerRepository passengerRepository;
 
     // Endpoint do dodawania lotów
     @PostMapping
@@ -78,32 +82,22 @@ public class FlightController {
         }
     }
 
-    // Pobranie pasażerów dla lotu
-@GetMapping("/{flightId}/passengers")
-public ResponseEntity<?> getPassengersByFlight(@PathVariable String flightId) {
-    try {
-        List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
-        return ResponseEntity.ok(passengers);
-    } catch (Exception e) {
-        return ResponseEntity.status(500).body("Error fetching passengers: " + e.getMessage());
-    }
-}
+    // @GetMapping("/{id}/passengers")
+    // public ResponseEntity<?> getPassengersByFlightId(@PathVariable String id) {
+    //     try {
+    //         List<Passenger> passengers = flightService.getPassengersByFlightId(id);
+    //         return ResponseEntity.ok(passengers);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching passengers");
+    //     }
+    // }
 
-// Aktualizacja stanu pasażera
-@PutMapping("/passenger/{id}/state")
-public ResponseEntity<?> updatePassengerState(@PathVariable String id, @RequestBody String state) {
-    try {
-        Optional<Passenger> passengerOpt = passengerRepository.findById(id);
-        if (passengerOpt.isPresent()) {
-            Passenger passenger = passengerOpt.get();
-            passenger.setState(state);
-            passengerRepository.save(passenger);
-            return ResponseEntity.ok(passenger);
-        } else {
-            return ResponseEntity.status(404).body("Passenger not found");
+    @GetMapping("/api/flights/{flightId}/passengers")
+    public ResponseEntity<List<Passenger>> getPassengersByFlightId(@PathVariable String flightId) {
+        List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
+        if (passengers.isEmpty()) {
+            return ResponseEntity.noContent().build();
         }
-    } catch (Exception e) {
-        return ResponseEntity.status(500).body("Error updating passenger state: " + e.getMessage());
+        return ResponseEntity.ok(passengers);
     }
-}
 }

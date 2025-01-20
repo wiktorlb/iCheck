@@ -10,10 +10,6 @@ public class Passenger {
     private String flightId;
     private String name;
     private String surname;
-    private String gender;
-    private String state; // NOSHOW, ACCEPTED, BOARDED
-    private String seat;
-
 
     public String getId() {
         return id;
@@ -39,25 +35,4 @@ public class Passenger {
     public void setSurname(String surname) {
         this.surname = surname;
     }
-    public String getGender() {
-        return gender;
-    }
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
-    public String getState() {
-        return state;
-    }
-    public void setState(String state) {
-        this.state = state;
-    }
-    public String getSeat() {
-        return seat;
-    }
-    public void setSeat(String seat) {
-        this.seat = seat;
-    }
-
-    // Gettery i settery
-
 }
