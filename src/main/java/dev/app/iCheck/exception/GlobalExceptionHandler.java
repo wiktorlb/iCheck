@@ -25,5 +25,4 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Nieprawidłowe dane: " + e.getMessage());
     }
 
-    // Możesz dodać inne specyficzne obsługi wyjątków tutaj
 }

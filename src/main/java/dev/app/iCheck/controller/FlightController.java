@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import dev.app.iCheck.exception.ResourceNotFoundException;
 import dev.app.iCheck.model.Destination;
 import dev.app.iCheck.model.Flight;
 import dev.app.iCheck.model.Passenger;
@@ -13,6 +14,7 @@ import dev.app.iCheck.repository.FlightRepository;
 import dev.app.iCheck.repository.PassengerRepository;
 import dev.app.iCheck.service.FlightService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -82,22 +84,13 @@ public class FlightController {
         }
     }
 
-    // @GetMapping("/{id}/passengers")
-    // public ResponseEntity<?> getPassengersByFlightId(@PathVariable String id) {
-    //     try {
-    //         List<Passenger> passengers = flightService.getPassengersByFlightId(id);
-    //         return ResponseEntity.ok(passengers);
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching passengers");
-    //     }
-    // }
-
-    @GetMapping("/api/flights/{flightId}/passengers")
-    public ResponseEntity<List<Passenger>> getPassengersByFlightId(@PathVariable String flightId) {
-        List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
-        if (passengers.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(passengers);
-    }
+    @GetMapping("/{id}/passengers")
+   public ResponseEntity<?> getPassengersByFlightId(@PathVariable("id") String flightId) {
+       try {
+           List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
+           return ResponseEntity.ok(passengers);
+       } catch (Exception e) {
+           return ResponseEntity.status(500).body("Wystąpił błąd: " + e.getMessage());
+       }
+   }
 }
