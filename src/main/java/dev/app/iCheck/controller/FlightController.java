@@ -16,6 +16,7 @@ import dev.app.iCheck.service.FlightService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -133,4 +134,62 @@ public ResponseEntity<?> deleteFlight(@PathVariable String flightId) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
     }
 }
+/*
+
+
+ */
+// Enum statusu lotu
+public enum FlightStatus {
+    PREPARE, OPEN, CLOSED, FINALIZED
+}
+
+@PutMapping("/{flightId}/status")
+public ResponseEntity<?> updateFlightStatus(@PathVariable String flightId, @RequestBody Map<String, String> body) {
+    String newStatus = body.get("newStatus");
+
+    try {
+        // Walidacja statusu
+        FlightStatus status = FlightStatus.valueOf(newStatus.toUpperCase());
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body("Invalid status. Allowed values: prepare, open, closed, finalized.");
+    }
+
+    try {
+        // Pobierz lot z bazy danych
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
+
+        // Zaktualizuj status lotu
+        flight.setState(newStatus);
+        flightRepository.save(flight);
+
+        return ResponseEntity.ok("Flight status updated to: " + newStatus);
+    } catch (ResourceNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error updating flight status: " + e.getMessage());
+    }
+}
+
+/* @PatchMapping("/{flightId}/status")
+public ResponseEntity<?> updateFlightStatus(@PathVariable String flightId, @RequestBody String newStatus) {
+    try {
+        // Pobierz lot z bazy danych
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
+
+        // Zaktualizuj stan lotu
+        flight.setState(newStatus);
+        flightRepository.save(flight);
+
+        return ResponseEntity.ok("Flight status updated to: " + newStatus);
+    } catch (ResourceNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error updating flight status: " + e.getMessage());
+    }
+} */
+
 }
