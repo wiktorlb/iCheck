@@ -49,45 +49,32 @@ public class AuthController {
     }
 
     // Endpoint do rejestracji użytkownika
-/*     @PostMapping("/register")
-    public String registerUser(@RequestBody User user) {
-        // Przypisanie roli "user" podczas rejestracji
-        user.setRoles(Collections.singletonList("user")); // Domyślna rola
-        user.setCreatedAt(Instant.now()); // Ustawienie daty utworzenia
-        user.setPassword(passwordEncoder.encode(user.getPassword())); // Haszowanie hasła
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody User user) {
+        try {
+            // Walidacja unikalności email
+            Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
+            if (existingUser.isPresent()) {
+                return ResponseEntity.badRequest().body("Email already exists: " + user.getEmail());
+            }
 
-        // Zapisanie użytkownika do bazy
-        userRepository.save(user);
+            // Losowanie unikalnego 6-cyfrowego username
+            String username = generateUniqueUsername();
+            user.setUsername(username);
 
-        return "User registered successfully";
-    } */
+            // Ustawienie domyślnych wartości
+            user.setRoles(Collections.singletonList("USER"));
+            user.setCreatedAt(Instant.now());
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-@PostMapping("/register")
-public ResponseEntity<?> registerUser(@RequestBody User user) {
-    try {
-        // Walidacja unikalności email
-        Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
-        if (existingUser.isPresent()) {
-            return ResponseEntity.badRequest().body("Email already exists: " + user.getEmail());
+            // Zapis użytkownika w bazie
+            userRepository.save(user);
+
+            return ResponseEntity.ok("User registered successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error while registering user: " + e.getMessage());
         }
-
-        // Losowanie unikalnego 6-cyfrowego username
-        String username = generateUniqueUsername();
-        user.setUsername(username);
-
-        // Ustawienie domyślnych wartości
-        user.setRoles(Collections.singletonList("USER"));
-        user.setCreatedAt(Instant.now());
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        // Zapis użytkownika w bazie
-        userRepository.save(user);
-
-        return ResponseEntity.ok("User registered successfully");
-    } catch (Exception e) {
-        return ResponseEntity.status(500).body("Error while registering user: " + e.getMessage());
     }
-}
 
 // Funkcja do losowania unikalnego 6-cyfrowego username
 private String generateUniqueUsername() {

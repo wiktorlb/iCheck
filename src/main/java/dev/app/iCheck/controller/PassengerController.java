@@ -70,29 +70,4 @@ public class PassengerController {
         }
         return passengers;
     }
-
-/*     @DeleteMapping("/{flightId}/passengers/{passengerId}")
-    public ResponseEntity<?> deletePassenger(
-            @PathVariable String flightId,
-            @PathVariable String passengerId) {
-        try {
-            System.out.println("Searching for flight");
-            Flight flight = flightRepository.findById(flightId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Flight not found"));
-            Passenger passenger = passengerRepository.findById(passengerId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
-
-            if (!flight.getPassengers().contains(passenger)) {
-                throw new ResourceNotFoundException("Passenger not associated with this flight");
-            }
-
-            flight.getPassengers().remove(passenger);
-            flightRepository.save(flight);
-            passengerRepository.delete(passenger);
-
-            return ResponseEntity.ok("Passenger deleted successfully");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }
-    } */
 }

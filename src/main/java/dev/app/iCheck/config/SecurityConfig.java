@@ -2,7 +2,6 @@ package dev.app.iCheck.config;
 
 import dev.app.iCheck.security.AuthenticationFilter;
 import dev.app.iCheck.service.CustomUserDetailsService;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -32,6 +31,32 @@ public class SecurityConfig {
         this.authenticationFilter = authenticationFilter;
     }
 
+    // @Bean
+    // public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    //     http
+    //             .csrf().disable()
+    //             .cors().and() // Włącz obsługę CORS
+    //             .authorizeRequests() // Używamy authorizeRequests do autoryzacji
+    //             .requestMatchers("/api/auth/login").permitAll() // Zezwalaj na dostęp do logowania dla wszystkich
+    //             .requestMatchers("/api/users").hasRole("ADMIN") // Tylko dla administratorów - zarządzanie użytkownikami
+    //             .requestMatchers("/api/users/**/roles/add", "/api/users/**/roles/remove").hasRole("ADMIN") // Dodawanie/Usuwanie
+    //                                                                                                        // ról -
+    //                                                                                                        // ADMIN
+    //             .requestMatchers("/api/auth/register").hasRole("ADMIN") // Rejestracja - tylko dla ADMIN
+    //             .requestMatchers("/api/flights").hasRole("LEADER") // Dodawanie lotów - tylko dla LEADER
+    //             .requestMatchers("/api/flights/**/passengers/upload").hasRole("LEADER") // Dodawanie pasażerów - tylko
+    //                                                                                     // dla LEADER
+    //             .requestMatchers("/api/flights/**/delete").hasRole("LEADER") // Usuwanie lotów - tylko dla LEADER
+    //             .requestMatchers("/api/flights/**/status").hasRole("USER") // Zmiana statusu lotu - tylko dla USER
+    //             .requestMatchers("/management/**", "/flightboard/**").authenticated() // Wymaga autoryzacji
+    //             .anyRequest().permitAll() // Pozwól na dostęp do innych publicznych zasobów
+    //             .and()
+    //             .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class); // Dodanie filtra
+
+    //     return http.build();
+    // }
+
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -39,19 +64,23 @@ public class SecurityConfig {
                 .cors().and() // Włącz obsługę CORS
                 .authorizeRequests() // Używamy authorizeRequests do autoryzacji
                 .requestMatchers("/api/auth/login").permitAll() // Zezwalaj na dostęp do loginu
-                .requestMatchers("/api/flights").permitAll()
-/*   TYM SIE ZAJAC
+                .requestMatchers("/api/flights").hasAnyRole("USER", "LEADER", "ADMIN") // Zezwalaj na dostęp do lotów
                 .requestMatchers("/api/auth/userinfo").authenticated() // Endpoint z autentykacją
-                .requestMatchers("/management/**", "/flightboard/**").authenticated() // Wymaga autoryzacji
+                .requestMatchers("/flightboard/**").authenticated() // Wymaga autoryzacji
                 .requestMatchers("/register", "/add-flight").hasRole("ADMIN") // Dostęp tylko dla administratorów
- */
+                .requestMatchers("/management/**").hasRole("ADMIN")
+                .requestMatchers("api/users").hasRole("ADMIN") // Tylko admin może zarządzać użytkownikami
+                .requestMatchers("/add-passenger").hasAnyRole("LEADER", "ADMIN") // Leader i admin mogą dodawać
+                                                                                 // pasażerów
+                .requestMatchers("/delete-flight").hasRole("ADMIN") // Tylko admin może usuwać loty
+                .requestMatchers("/update-status").hasAnyRole("USER", "LEADER", "ADMIN") // User, Leader, Admin mogą
+                                                                                         // zmieniać status lotu
                 .anyRequest().permitAll() // Pozwól na dostęp do innych publicznych zasobów
                 .and()
                 .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class); // Dodanie filtra
 
         return http.build();
     }
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(); // Haszowanie haseł

@@ -1,7 +1,10 @@
 package dev.app.iCheck.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import dev.app.iCheck.model.User;
@@ -9,6 +12,8 @@ import dev.app.iCheck.repository.UserRepository;
 
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/api/users")
@@ -18,7 +23,7 @@ public class UserController {
     private UserRepository userRepository;
 
     // Pobieranie wszystkich użytkowników
-    @GetMapping
+     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userRepository.findAll();
         return ResponseEntity.ok(users);
@@ -64,5 +69,17 @@ public class UserController {
         return ResponseEntity.status(400).body("Role not found.");
     }
     return ResponseEntity.status(404).body("User not found.");
+}
+
+@DeleteMapping("/{userId}")
+public ResponseEntity<String> deleteUser(@PathVariable String userId) {
+    Optional<User> userOptional = userRepository.findById(userId);
+
+    if (userOptional.isPresent()) {
+        userRepository.delete(userOptional.get());
+        return ResponseEntity.ok("User deleted successfully.");
+    } else {
+        return ResponseEntity.status(404).body("User not found.");
+    }
 }
 }

@@ -1,7 +1,10 @@
 package dev.app.iCheck.security;
 
-import dev.app.iCheck.service.AuthService;
+import dev.app.iCheck.security.JWTUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -10,6 +13,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collections;
 
 @Component
 public class AuthenticationFilter extends OncePerRequestFilter {
@@ -30,9 +34,12 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                 String username = jwtUtil.extractUsername(token);
                 String role = jwtUtil.extractAllClaims(token).get("role", String.class); // Wyciąganie roli z tokenu
 
-                // Ustawiamy dane w atrybutach żądania, aby mogły być używane w kontrolerze
-                request.setAttribute("username", username);
-                request.setAttribute("role", role);
+                // Tworzymy autentykację
+                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                        username, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));
+
+                // Ustawiamy autentykację w kontekście Spring Security
+                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             } else {
                 // Jeśli token jest nieprawidłowy, zwracamy status HTTP 401
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

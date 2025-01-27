@@ -17,6 +17,8 @@ dev\app\iCheck\model\Destination.class
 dev\app\iCheck\model\Flight.class
 dev\app\iCheck\model\LoginResponse.class
 dev\app\iCheck\model\User.class
+dev\app\iCheck\controller\FlightController$FlightStatus.class
+dev\app\iCheck\controller\UserController.class
 dev\app\iCheck\service\FlightService.class
 dev\app\iCheck\exception\GlobalExceptionHandler.class
 dev\app\iCheck\repository\DestinationRepository.class
