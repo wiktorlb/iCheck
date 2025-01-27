@@ -12,11 +12,11 @@ F:\iCheck\src\main\java\dev\app\iCheck\controller\FlightController.java
 F:\iCheck\src\main\java\dev\app\iCheck\model\Flight.java
 F:\iCheck\src\main\java\dev\app\iCheck\model\LoginResponse.java
 F:\iCheck\src\main\java\dev\app\iCheck\security\JWTUtil.java
-F:\iCheck\src\main\java\dev\app\iCheck\controller\user\UserController.java
 F:\iCheck\src\main\java\dev\app\iCheck\service\FlightService.java
 F:\iCheck\src\main\java\dev\app\iCheck\exception\GlobalExceptionHandler.java
 F:\iCheck\src\main\java\dev\app\iCheck\service\CustomUserDetailsService.java
 F:\iCheck\src\main\java\dev\app\iCheck\model\Passenger.java
+F:\iCheck\src\main\java\dev\app\iCheck\controller\UserController.java
 F:\iCheck\src\main\java\dev\app\iCheck\exception\ResourceNotFoundException.java
 F:\iCheck\src\main\java\dev\app\iCheck\repository\FlightRepository.java
 F:\iCheck\src\main\java\dev\app\iCheck\model\Destination.java

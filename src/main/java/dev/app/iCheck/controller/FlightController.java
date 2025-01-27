@@ -36,7 +36,7 @@ public class FlightController {
     private PassengerRepository passengerRepository;
 
     // Endpoint do dodawania lotów
-    @PostMapping
+/*     @PostMapping
     public ResponseEntity<?> addFlight(@RequestBody Flight flight) {
         try {
             // Walidacja trasy
@@ -60,7 +60,39 @@ public class FlightController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error while saving flight: " + e.getMessage());
         }
+    } */
+
+    @PostMapping
+public ResponseEntity<?> addFlight(@RequestBody Flight flight) {
+    try {
+        // Walidacja numeru lotu (unikalność)
+        Optional<Flight> existingFlight = flightRepository.findByFlightNumber(flight.getFlightNumber());
+        if (existingFlight.isPresent()) {
+            return ResponseEntity.badRequest().body("Flight number already exists: " + flight.getFlightNumber());
+        }
+
+        // Walidacja trasy
+        String[] routeParts = flight.getRoute().split(" - ");
+        if (routeParts.length != 2) {
+            return ResponseEntity.badRequest().body("Invalid route format. Expected 'KTW - DEST_ID'.");
+        }
+
+        String destinationCode = routeParts[1];
+        Optional<Destination> destinationOpt = destinationRepository.findById(destinationCode);
+
+        if (destinationOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body("Destination code not found: " + destinationCode);
+        }
+
+        // Zapis lotu w bazie danych
+        flight.setState("Prepare");
+        Flight savedFlight = flightRepository.save(flight);
+
+        return ResponseEntity.ok(savedFlight);
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Error while saving flight: " + e.getMessage());
     }
+}
 
     @GetMapping
     public ResponseEntity<?> getFlights(@RequestParam(required = false) String date) {
@@ -171,25 +203,4 @@ public ResponseEntity<?> updateFlightStatus(@PathVariable String flightId, @Requ
                 .body("Error updating flight status: " + e.getMessage());
     }
 }
-
-/* @PatchMapping("/{flightId}/status")
-public ResponseEntity<?> updateFlightStatus(@PathVariable String flightId, @RequestBody String newStatus) {
-    try {
-        // Pobierz lot z bazy danych
-        Flight flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
-
-        // Zaktualizuj stan lotu
-        flight.setState(newStatus);
-        flightRepository.save(flight);
-
-        return ResponseEntity.ok("Flight status updated to: " + newStatus);
-    } catch (ResourceNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error updating flight status: " + e.getMessage());
-    }
-} */
-
 }
