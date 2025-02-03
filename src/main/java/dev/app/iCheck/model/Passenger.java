@@ -11,14 +11,16 @@ public class Passenger {
     private String name;
     private String surname;
     private String gender;
+    private String status;
 
     // Konstruktor, gettery i settery
-    public Passenger(String id, String flightId, String name, String surname, String gender) {
+    public Passenger(String id, String flightId, String name, String surname, String gender, String status) {
         this.id = id;
         this.flightId = flightId;
         this.name = name;
         this.surname = surname;
         this.gender = gender;
+        this.status = status;
     }
 
     public String getId() {
@@ -50,5 +52,13 @@ public class Passenger {
     }
     public void setGender(String gender) {
         this.gender = gender;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import dev.app.iCheck.exception.ResourceNotFoundException;
 import dev.app.iCheck.model.Flight;
 import dev.app.iCheck.model.Passenger;
+import dev.app.iCheck.model.PassengerAPI;
 import dev.app.iCheck.repository.FlightRepository;
 import dev.app.iCheck.repository.PassengerRepository;
 import dev.app.iCheck.service.FlightService;
@@ -65,9 +68,85 @@ public class PassengerController {
             String gender = parts[parts.length - 1].toUpperCase();
             String surname = parts[0];
             String name = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length - 1));
+            String status = "NONE"; // Ustawienie statusu na "NONE"
 
-            passengers.add(new Passenger(null, flightId, name, surname, gender));
+            passengers.add(new Passenger(null, flightId, name, surname, gender, status));
         }
         return passengers;
     }
+
+/* @PutMapping("/{passengerId}")
+public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String passengerId,
+        @RequestBody PassengerAPI updatedPassengerAPI) {
+    try {
+        // Sprawdź, czy pasażer istnieje w bazie
+        Passenger passenger = passengerRepository.findById(passengerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
+
+        // Aktualizuj dane pasażera
+        passenger.setName(updatedPassengerAPI.getName());
+        passenger.setSurname(updatedPassengerAPI.getSurname());
+        passenger.setGender(updatedPassengerAPI.getGender());
+        passenger.setStatus(updatedPassengerAPI.getStatus());
+
+        if (updatedPassengerAPI.getDateOfBirth() != null) {
+            passenger.setDateOfBirth(updatedPassengerAPI.getDateOfBirth());
+        }
+        if (updatedPassengerAPI.getCitizenship() != null) {
+            passenger.setCitizenship(updatedPassengerAPI.getCitizenship());
+        }
+        if (updatedPassengerAPI.getDocumentType() != null) {
+            passenger.setDocumentType(updatedPassengerAPI.getDocumentType());
+        }
+        if (updatedPassengerAPI.getSerialName() != null) {
+            passenger.setSerialName(updatedPassengerAPI.getSerialName());
+        }
+        if (updatedPassengerAPI.getValidUntil() != null) {
+            passenger.setValidUntil(updatedPassengerAPI.getValidUntil());
+        }
+        if (updatedPassengerAPI.getIssueCountry() != null) {
+            passenger.setIssueCountry(updatedPassengerAPI.getIssueCountry());
+        }
+
+        // Zapisz zmodyfikowanego pasażera w bazie
+        passengerRepository.save(passenger);
+
+        return ResponseEntity.ok("Passenger updated successfully.");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating passenger: " + e.getMessage());
+    }
+} */
+
+@PutMapping("/{passengerId}")
+public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String passengerId,
+        @RequestBody PassengerAPI updatedPassengerAPI) {
+    try {
+        // Sprawdź, czy pasażer istnieje w bazie
+        Passenger passenger = passengerRepository.findById(passengerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
+
+        // Utwórz nowy obiekt PassengerAPI z aktualizowanymi danymi
+        PassengerAPI passengerAPI = new PassengerAPI(
+                passenger.getId(),
+                passenger.getFlightId(),
+                updatedPassengerAPI.getName() != null ? updatedPassengerAPI.getName() : passenger.getName(),
+                updatedPassengerAPI.getSurname() != null ? updatedPassengerAPI.getSurname() : passenger.getSurname(),
+                updatedPassengerAPI.getGender() != null ? updatedPassengerAPI.getGender() : passenger.getGender(),
+                updatedPassengerAPI.getStatus() != null ? updatedPassengerAPI.getStatus() : passenger.getStatus(),
+                updatedPassengerAPI.getDateOfBirth(),
+                updatedPassengerAPI.getCitizenship(),
+                updatedPassengerAPI.getDocumentType(),
+                updatedPassengerAPI.getSerialName(),
+                updatedPassengerAPI.getValidUntil(),
+                updatedPassengerAPI.getIssueCountry());
+
+        // Zapisz zmodyfikowanego pasażera w bazie
+        passengerRepository.save(passengerAPI);
+
+        return ResponseEntity.ok("Passenger updated successfully.");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error updating passenger: " + e.getMessage());
+    }
+}
 }

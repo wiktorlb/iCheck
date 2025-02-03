@@ -140,6 +140,33 @@ public ResponseEntity<?> deleteFlight(@PathVariable String flightId) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
     }
 }
+
+@PutMapping("/{flightId}/passengers/{passengerId}/accept")
+public ResponseEntity<?> acceptPassenger(@PathVariable("flightId") String flightId,
+        @PathVariable("passengerId") String passengerId) {
+    try {
+        // Pobierz lot z bazy danych
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
+
+        // Pobierz pasażera z bazy danych
+        Passenger passenger = passengerRepository.findById(passengerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with ID: " + passengerId));
+
+        // Zmieniamy status pasażera na "Accepted"
+        passenger.setStatus("ACC");
+
+        // Zapisujemy zmiany w bazie danych
+        passengerRepository.save(passenger);
+
+        return ResponseEntity.ok("Passenger status updated to Accepted");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error updating passenger status: " + e.getMessage());
+    }
+}
+
+
 /*
 
 
