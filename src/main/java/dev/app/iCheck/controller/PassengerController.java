@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -75,47 +76,7 @@ public class PassengerController {
         return passengers;
     }
 
-/* @PutMapping("/{passengerId}")
-public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String passengerId,
-        @RequestBody PassengerAPI updatedPassengerAPI) {
-    try {
-        // Sprawdź, czy pasażer istnieje w bazie
-        Passenger passenger = passengerRepository.findById(passengerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
 
-        // Aktualizuj dane pasażera
-        passenger.setName(updatedPassengerAPI.getName());
-        passenger.setSurname(updatedPassengerAPI.getSurname());
-        passenger.setGender(updatedPassengerAPI.getGender());
-        passenger.setStatus(updatedPassengerAPI.getStatus());
-
-        if (updatedPassengerAPI.getDateOfBirth() != null) {
-            passenger.setDateOfBirth(updatedPassengerAPI.getDateOfBirth());
-        }
-        if (updatedPassengerAPI.getCitizenship() != null) {
-            passenger.setCitizenship(updatedPassengerAPI.getCitizenship());
-        }
-        if (updatedPassengerAPI.getDocumentType() != null) {
-            passenger.setDocumentType(updatedPassengerAPI.getDocumentType());
-        }
-        if (updatedPassengerAPI.getSerialName() != null) {
-            passenger.setSerialName(updatedPassengerAPI.getSerialName());
-        }
-        if (updatedPassengerAPI.getValidUntil() != null) {
-            passenger.setValidUntil(updatedPassengerAPI.getValidUntil());
-        }
-        if (updatedPassengerAPI.getIssueCountry() != null) {
-            passenger.setIssueCountry(updatedPassengerAPI.getIssueCountry());
-        }
-
-        // Zapisz zmodyfikowanego pasażera w bazie
-        passengerRepository.save(passenger);
-
-        return ResponseEntity.ok("Passenger updated successfully.");
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating passenger: " + e.getMessage());
-    }
-} */
 
 @PutMapping("/{passengerId}")
 public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String passengerId,
@@ -143,10 +104,39 @@ public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String pas
         // Zapisz zmodyfikowanego pasażera w bazie
         passengerRepository.save(passengerAPI);
 
-        return ResponseEntity.ok("Passenger updated successfully.");
+        return ResponseEntity.ok(passengerAPI); // Zwórć zaktualizowanego pasażera
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error updating passenger: " + e.getMessage());
+    }
+}
+
+@PutMapping("/{passengerId}/status")
+public ResponseEntity<?> updatePassengerStatus(@PathVariable String passengerId, @RequestBody String status) {
+    try {
+        Passenger passenger = passengerRepository.findById(passengerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
+
+        passenger.setStatus(status.replaceAll("[\"{}]", "")); // Usuwa cudzysłowy i klamry JSON
+
+        passengerRepository.save(passenger);
+        return ResponseEntity.ok(passenger);
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error updating passenger status: " + e.getMessage());
+    }
+}
+
+@GetMapping("/{passengerId}")
+public ResponseEntity<?> getPassenger(@PathVariable("passengerId") String passengerId) {
+    try {
+        Passenger passenger = passengerRepository.findById(passengerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
+
+        return ResponseEntity.ok(passenger);
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error fetching passenger: " + e.getMessage());
     }
 }
 }
