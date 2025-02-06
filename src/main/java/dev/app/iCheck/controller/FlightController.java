@@ -95,6 +95,11 @@ public class FlightController {
    public ResponseEntity<?> getPassengersByFlightId(@PathVariable("id") String flightId) {
        try {
            List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
+           for (Passenger p : passengers) {
+            System.out.println("-----------------------------");
+               System.out.println("Passenger: " + p.getName() + " " + p.getSurname() +
+                       " | Title: " + p.getTitle() + " | Status: " + p.getStatus());
+           }
            return ResponseEntity.ok(passengers);
        } catch (Exception e) {
            return ResponseEntity.status(500).body("Wystąpił błąd: " + e.getMessage());

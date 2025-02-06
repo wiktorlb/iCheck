@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,8 +21,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import dev.app.iCheck.exception.ResourceNotFoundException;
+import dev.app.iCheck.model.Baggage;
 import dev.app.iCheck.model.Flight;
 import dev.app.iCheck.model.Passenger;
+import dev.app.iCheck.model.Passenger.Comment;
 import dev.app.iCheck.model.PassengerAPI;
 import dev.app.iCheck.repository.FlightRepository;
 import dev.app.iCheck.repository.PassengerRepository;
@@ -65,13 +68,35 @@ public class PassengerController {
         String line;
         while ((line = reader.readLine()) != null) {
             // Przetwarzanie każdej linii
-            String[] parts = line.trim().split(" ");
-            String gender = parts[parts.length - 1].toUpperCase();
-            String surname = parts[0];
-            String name = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length - 1));
-            String status = "NONE"; // Ustawienie statusu na "NONE"
+            String[] parts = line.trim().split("\\s+"); // Split by spaces, handling multiple spaces
+            if (parts.length < 3)
+                continue; // Pominięcie niepoprawnych linii
 
-            passengers.add(new Passenger(null, flightId, name, surname, gender, status));
+            // Gender is always the last element
+            String rawGender = parts[parts.length - 1].toUpperCase();
+            String gender = rawGender.equals("FEMALE") || rawGender.equals("F") ? "F"
+                    : rawGender.equals("MALE") || rawGender.equals("M") ? "M" : "F"; // Default to "F" if unknown
+
+            // Determine if second-to-last element is a valid title
+            String[] validTitles = { "MR", "MRS", "CHLD" };
+            String title = "NONE";
+            if (Arrays.asList(validTitles).contains(parts[parts.length - 2])) {
+                title = parts[parts.length - 2];
+            }
+
+            // Surname is always first element
+            String surname = parts[0];
+
+            // Name is everything between surname and title
+            int nameEndIndex = title.equals("NONE") ? parts.length - 1 : parts.length - 2;
+            String name = String.join(" ", Arrays.copyOfRange(parts, 1, nameEndIndex));
+            System.out.println("zapis z pliku");
+System.out.println("-----------------------");
+            System.out.println("Imię: " + name + ", Nazwisko: " + surname + ", Tytuł: " + title + ", Płeć: " + gender);
+
+            String status = "NONE"; // Default status
+
+            passengers.add(new Passenger(null, flightId, name, surname, gender, status, title));
         }
         return passengers;
     }
@@ -94,6 +119,7 @@ public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String pas
                 updatedPassengerAPI.getSurname() != null ? updatedPassengerAPI.getSurname() : passenger.getSurname(),
                 updatedPassengerAPI.getGender() != null ? updatedPassengerAPI.getGender() : passenger.getGender(),
                 updatedPassengerAPI.getStatus() != null ? updatedPassengerAPI.getStatus() : passenger.getStatus(),
+                updatedPassengerAPI.getTitle() != null ? updatedPassengerAPI.getTitle() : passenger.getTitle(),
                 updatedPassengerAPI.getDateOfBirth(),
                 updatedPassengerAPI.getCitizenship(),
                 updatedPassengerAPI.getDocumentType(),
@@ -138,5 +164,22 @@ public ResponseEntity<?> getPassenger(@PathVariable("passengerId") String passen
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error fetching passenger: " + e.getMessage());
     }
+}
+
+
+
+// Nowa metoda do aktualizacji komentarza
+@PutMapping("/{id}/add-comment")
+public ResponseEntity<Passenger> addComment(@PathVariable("id") String passengerId, @RequestBody Comment newComment) {
+    Optional<Passenger> passengerOpt = passengerRepository.findById(passengerId);
+    if (passengerOpt.isEmpty()) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+    }
+
+    Passenger passenger = passengerOpt.get();
+    passenger.getComments().add(newComment);
+    passengerRepository.save(passenger);
+
+    return ResponseEntity.ok(passenger);
 }
 }
