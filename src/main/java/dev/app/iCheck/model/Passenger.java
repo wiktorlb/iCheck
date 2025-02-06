@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = "passenger")
+@CompoundIndex(def = "{'flightId': 1}")
 public class Passenger {
     @Id
     private String id;
@@ -133,4 +135,27 @@ public static class Comment {
     }
 
 
+
+    public List<String> getSRRCodes() {
+        List<String> codes = new ArrayList<>();
+
+        // Sprawdź czy pasażer ma dane API
+        if (this instanceof PassengerAPI) {
+            codes.add("DOCS");
+        }
+
+        // Sprawdź bagaże
+        if (baggageList != null && !baggageList.isEmpty()) {
+            for (int i = 0; i < baggageList.size(); i++) {
+                codes.add("BAG" + (i + 1));
+            }
+        }
+
+        // Sprawdź komentarze
+        if (comments != null && !comments.isEmpty()) {
+            codes.add("COM");
+        }
+
+        return codes;
+    }
 }
