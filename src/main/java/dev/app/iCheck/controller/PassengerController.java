@@ -250,7 +250,7 @@ public ResponseEntity<?> getPassenger(@PathVariable("passengerId") String passen
     }
 }
 
-@GetMapping("/flights/{flightId}/passengers-with-srr")
+/* @GetMapping("/flights/{flightId}/passengers-with-srr")
 public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
     try {
         List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
@@ -279,6 +279,61 @@ public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body("Error fetching passengers: " + e.getMessage());
+    }
+} */
+@GetMapping("/flights/{flightId}/passengers-with-srr")
+public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
+    try {
+        List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
+
+        List<Map<String, Object>> passengersWithDetails = passengers.stream()
+                .map(passenger -> {
+                    Map<String, Object> passengerData = new HashMap<>();
+                    // Podstawowe dane
+                    passengerData.put("id", passenger.getId());
+                    passengerData.put("name", passenger.getName());
+                    passengerData.put("surname", passenger.getSurname());
+                    passengerData.put("gender", passenger.getGender());
+                    passengerData.put("status", passenger.getStatus());
+                    passengerData.put("title", passenger.getTitle());
+
+                    // Bagaże
+                    List<Map<String, Object>> baggageDetails = new ArrayList<>();
+                    if (passenger.getBaggageList() != null) {
+                        for (Baggage baggage : passenger.getBaggageList()) {
+                            Map<String, Object> baggageMap = new HashMap<>();
+                            baggageMap.put("id", baggage.getId());
+                            baggageMap.put("weight", baggage.getWeight());
+                            // dodaj inne potrzebne pola bagażu
+                            baggageDetails.add(baggageMap);
+                        }
+                    }
+                    passengerData.put("baggageList", baggageDetails);
+
+                    // Komentarze
+                    passengerData.put("comments", passenger.getComments());
+
+                    // SSR kody
+                    passengerData.put("srrCodes", passenger.getSRRCodes());
+
+                    // Dane dokumentów (jeśli to PassengerAPI)
+                    if (passenger instanceof PassengerAPI) {
+                        PassengerAPI papi = (PassengerAPI) passenger;
+                        passengerData.put("documentType", papi.getDocumentType());
+                        passengerData.put("citizenship", papi.getCitizenship());
+                        passengerData.put("serialName", papi.getSerialName());
+                        passengerData.put("validUntil", papi.getValidUntil());
+                        passengerData.put("issueCountry", papi.getIssueCountry());
+                    }
+
+                    return passengerData;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(passengersWithDetails);
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error fetching passengers: " + e.getMessage());
     }
 }
 
