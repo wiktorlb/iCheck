@@ -314,7 +314,7 @@ public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
                             Map<String, Object> baggageMap = new HashMap<>();
                             baggageMap.put("id", baggage.getId());
                             baggageMap.put("weight", baggage.getWeight());
-                            // dodaj inne potrzebne pola bagażu
+                            baggageMap.put("type", baggage.getType()); // Dodajemy typ bagażu
                             baggageDetails.add(baggageMap);
                         }
                     }

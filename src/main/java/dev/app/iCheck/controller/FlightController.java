@@ -15,6 +15,7 @@ import dev.app.iCheck.repository.PassengerRepository;
 import dev.app.iCheck.service.FlightService;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -207,6 +208,29 @@ public ResponseEntity<?> updateFlightStatus(@PathVariable String flightId, @Requ
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error updating flight status: " + e.getMessage());
+    }
+}
+
+@GetMapping("/{id}")
+public ResponseEntity<?> getFlightById(@PathVariable String id) {
+    try {
+        Flight flight = flightRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + id));
+
+        Map<String, Object> flightDetails = new HashMap<>();
+        flightDetails.put("id", flight.getId());
+        flightDetails.put("flightNumber", flight.getFlightNumber());
+        flightDetails.put("departureTime", flight.getDepartureTime());
+        flightDetails.put("route", flight.getRoute());
+        flightDetails.put("state", flight.getState());
+
+        return ResponseEntity.ok(flightDetails);
+    } catch (ResourceNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(e.getMessage());
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error fetching flight: " + e.getMessage());
     }
 }
 }
