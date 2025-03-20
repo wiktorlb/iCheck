@@ -6,19 +6,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import dev.app.iCheck.exception.ResourceNotFoundException;
+import dev.app.iCheck.model.Aircraft;
 import dev.app.iCheck.model.Destination;
 import dev.app.iCheck.model.Flight;
 import dev.app.iCheck.model.Passenger;
+import dev.app.iCheck.model.Plane;
+import dev.app.iCheck.repository.AircraftRepository;
 import dev.app.iCheck.repository.DestinationRepository;
 import dev.app.iCheck.repository.FlightRepository;
 import dev.app.iCheck.repository.PassengerRepository;
+import dev.app.iCheck.repository.PlaneRepository;
 import dev.app.iCheck.service.FlightService;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/flights")
@@ -36,39 +42,114 @@ public class FlightController {
     @Autowired
     private PassengerRepository passengerRepository;
 
-    // Endpoint do dodawania lotów
-    @PostMapping
-    public ResponseEntity<?> addFlight(@RequestBody Flight flight) {
-    try {
-        // Walidacja numeru lotu (unikalność)
-        Optional<Flight> existingFlight = flightRepository.findByFlightNumber(flight.getFlightNumber());
-        if (existingFlight.isPresent()) {
-            return ResponseEntity.badRequest().body("Flight number already exists: " + flight.getFlightNumber());
-        }
+    @Autowired
+    private PlaneRepository planeRepository;
 
-        // Walidacja trasy
-        String[] routeParts = flight.getRoute().split(" - ");
-        if (routeParts.length != 2) {
-            return ResponseEntity.badRequest().body("Invalid route format. Expected 'KTW - DEST_ID'.");
-        }
+    @Autowired
+    private AircraftRepository aircraftRepository;
 
-        String destinationCode = routeParts[1];
-        Optional<Destination> destinationOpt = destinationRepository.findById(destinationCode);
-
-        if (destinationOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body("Destination code not found: " + destinationCode);
-        }
-
-        // Zapis lotu w bazie danych
-        flight.setState("Prepare");
-        Flight savedFlight = flightRepository.save(flight);
-
-        return ResponseEntity.ok(savedFlight);
-    } catch (Exception e) {
-        return ResponseEntity.status(500).body("Error while saving flight: " + e.getMessage());
+    public FlightController(FlightRepository flightRepository, AircraftRepository aircraftRepository,
+            PlaneRepository planeRepository) {
+        this.flightRepository = flightRepository;
+        this.aircraftRepository = aircraftRepository;
+        this.planeRepository = planeRepository;
     }
-}
 
+    // Endpoint do dodawania lotów
+    @PostMapping("/add-flight")
+    public ResponseEntity<?> addFlight(@RequestBody Flight flight) {
+        try {
+            System.out.println("Received flight: " + flight); // Dodaj logowanie
+            // Sprawdzenie unikalności numeru lotu
+            Optional<Flight> existingFlight = flightRepository.findByFlightNumber(flight.getFlightNumber());
+            if (existingFlight.isPresent()) {
+                return ResponseEntity.badRequest().body("Flight number already exists: " + flight.getFlightNumber());
+            }
+
+            // Sprawdzenie poprawności trasy
+            String[] routeParts = flight.getRoute().split(" - ");
+            if (routeParts.length != 2) {
+                return ResponseEntity.badRequest().body("Invalid route format. Expected 'KTW - DEST_ID'.");
+            }
+
+            // Walidacja miejsca docelowego
+            String destinationCode = routeParts[1];
+            Optional<Destination> destinationOpt = destinationRepository.findById(destinationCode);
+            if (destinationOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body("Destination code not found: " + destinationCode);
+            }
+
+            // Walidacja samolotu
+            if (flight.getPlaneId() == null || flight.getPlaneId().isEmpty()) {
+                return ResponseEntity.badRequest().body("Plane ID is required.");
+            }
+
+            Optional<Plane> planeOpt = planeRepository.findById(flight.getPlaneId());
+            if (planeOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body("Plane not found: " + flight.getPlaneId());
+            }
+
+            // Znajdź samolot na podstawie ID samolotu w Aircraft
+            Optional<Aircraft> aircraftOpt = aircraftRepository.findById(flight.getAircraftId());
+            if (aircraftOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Aircraft not found");
+            }
+
+/*             // Głębokie kopiowanie seatMap
+            List<List<String>> copiedSeatMap = planeOpt.get().getSeatMap().stream()
+                    .map(ArrayList::new) // Tworzy nową listę dla każdego wiersza
+                    .collect(Collectors.toList());
+
+            // Utwórz nowy flight z kopiowaną mapą miejsc
+            Flight newFlight = new Flight(
+                    flight.getId(),
+                    flight.getFlightNumber(),
+                    flight.getRoute(),
+                    flight.getStatus(), // Zmieniono na status
+                    flight.getDepartureDate(),
+                    flight.getDepartureTime(),
+                    flight.getAircraftId(),
+                    flight.getPlaneId(),
+                    copiedSeatMap,
+                    flight.getOccupiedSeats(),
+                    flight.getPassengers());
+
+            // Ustawienie domyślnego statusu i zapisanie nowego lotu
+            newFlight.setStatus("Prepare");
+            flightRepository.save(newFlight);
+
+            return ResponseEntity.ok(newFlight); */
+
+            // Skopiowanie seatMap jako płaskiej listy stringów
+List<String> copiedSeatMap = new ArrayList<>(planeOpt.get().getSeatMap());
+
+// Utworzenie nowego obiektu Flight z poprawioną strukturą seatMap
+Flight newFlight = new Flight(
+        flight.getId(),
+        flight.getFlightNumber(),
+        flight.getRoute(),
+        flight.getStatus(),
+        flight.getDepartureDate(),
+        flight.getDepartureTime(),
+        flight.getAircraftId(),
+        flight.getPlaneId(),
+        copiedSeatMap, // Poprawione przekazywanie seatMap
+        flight.getOccupiedSeats(),
+        flight.getPassengers());
+
+// Ustawienie domyślnego statusu
+newFlight.setStatus("Prepare");
+
+// Zapisanie nowego lotu do bazy
+flightRepository.save(newFlight);
+
+return ResponseEntity.ok(newFlight);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error while saving flight: " + e.getMessage());
+        }
+    }
+
+    // Endpoint do pobierania wszystkich lotów
     @GetMapping
     public ResponseEntity<?> getFlights(@RequestParam(required = false) String date) {
         try {
@@ -78,159 +159,101 @@ public class FlightController {
 
             return ResponseEntity.ok(flights); // Zwracaj zawsze listę
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Wystąpił błąd: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
 
-    // Endpoint do pobierania miejsc docelowych
-    @GetMapping("/destinations")
-    public ResponseEntity<?> getDestinations() {
+    // Endpoint do pobierania mapy miejsc danego lotu
+    @GetMapping("/{flightId}/seatmap")
+    public ResponseEntity<?> getSeatMap(@PathVariable String flightId) {
         try {
-            return ResponseEntity.ok(destinationRepository.findAll());
+            Flight flight = flightRepository.findById(flightId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
+
+            return ResponseEntity.ok(flight.getSeatMap());
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error while fetching destinations: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching seat map: " + e.getMessage());
         }
     }
 
-    @GetMapping("/{id}/passengers")
-   public ResponseEntity<?> getPassengersByFlightId(@PathVariable("id") String flightId) {
-       try {
-           List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
-           for (Passenger p : passengers) {
-            System.out.println("-----------------------------");
-               System.out.println("Passenger: " + p.getName() + " " + p.getSurname() +
-                       " | Title: " + p.getTitle() + " | Status: " + p.getStatus());
-           }
-           return ResponseEntity.ok(passengers);
-       } catch (Exception e) {
-           return ResponseEntity.status(500).body("Wystąpił błąd: " + e.getMessage());
-       }
-   }
+    // Endpoint do pobierania pasażerów danego lotu
+    @GetMapping("/{flightId}/passengers")
+    public ResponseEntity<?> getPassengersByFlightId(@PathVariable String flightId) {
+        try {
+            List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
+            return ResponseEntity.ok(passengers);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
 
-   @DeleteMapping("/{flightId}/passengers/{passengerId}")
-   public ResponseEntity<?> deletePassenger(
-           @PathVariable String flightId,
-           @PathVariable String passengerId) {
-       try {
-           Flight flight = flightRepository.findById(flightId)
-                   .orElseThrow(() -> new ResourceNotFoundException("Flight not found"));
-           Passenger passenger = passengerRepository.findById(passengerId)
-                   .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
+    // Endpoint do zmiany statusu lotu
+    @PutMapping("/{flightId}/status")
+    public ResponseEntity<?> updateFlightStatus(@PathVariable String flightId, @RequestBody Map<String, String> body) {
+        String newStatus = body.get("newStatus");
 
-           flight.getPassengers();
-           flightRepository.save(flight);
-           passengerRepository.delete(passenger);
+        try {
+            // Sprawdzenie poprawności statusu
+            Flight.FlightStatus status = Flight.FlightStatus.valueOf(newStatus.toUpperCase());
 
-           return ResponseEntity.ok("Passenger deleted successfully");
-       } catch (Exception e) {
-           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-       }
-   }
+            Flight flight = flightRepository.findById(flightId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
 
- @DeleteMapping("/{flightId}")
-public ResponseEntity<?> deleteFlight(@PathVariable String flightId) {
+            flight.setStatus(newStatus);
+            flightRepository.save(flight);
+
+            return ResponseEntity.ok("Flight status updated to: " + newStatus);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body("Invalid status. Allowed values: PREPARE, OPEN, CLOSED, FINALIZED.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error updating flight status: " + e.getMessage());
+        }
+    }
+
+    // Endpoint do pobierania szczegółów lotu
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getFlightById(@PathVariable String id) {
+        try {
+            Flight flight = flightRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + id));
+
+            Map<String, Object> flightDetails = new HashMap<>();
+            flightDetails.put("id", flight.getId());
+            flightDetails.put("flightNumber", flight.getFlightNumber());
+            flightDetails.put("route", flight.getRoute());
+            flightDetails.put("status", flight.getStatus()); // Zmieniono na status
+            flightDetails.put("departureTime", flight.getDepartureTime());
+            flightDetails.put("seatMap", flight.getSeatMap());
+            flightDetails.put("planeId", flight.getPlaneId());
+
+            return ResponseEntity.ok(flightDetails);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error while fetching flight: " + e.getMessage());
+        }
+    }
+
+
+/*     @PostMapping("/assign-seat")
+    public String assignSeat(@RequestBody SeatAssignmentRequest request) {
+        return flightService.assignSeat(request.getFlightId(), request.getPassengerId(), request.getSeatNumber());
+    } */
+   @PostMapping("/assign-seat")
+public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) {
     try {
-        // Pobierz lot lub rzuć wyjątek
-        Flight flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found"));
-
-        // Usuń powiązanych pasażerów
-        List<Passenger> passengers = passengerRepository.findByFlightId(flightId);
-        passengerRepository.deleteAll(passengers);
-
-        // Usuń lot
-        flightRepository.delete(flight);
-
-        return ResponseEntity.ok("Flight and associated passengers deleted successfully.");
+        String result = flightService.assignSeat(request.getFlightId(), request.getPassengerId(),
+                request.getSeatNumber());
+        return ResponseEntity.ok(result);
     } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error assigning seat: " + e.getMessage());
     }
 }
 
-@PutMapping("/{flightId}/passengers/{passengerId}/accept")
-public ResponseEntity<?> acceptPassenger(@PathVariable("flightId") String flightId,
-        @PathVariable("passengerId") String passengerId) {
-    try {
-        // Pobierz lot z bazy danych
-        Flight flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
-
-        // Pobierz pasażera z bazy danych
-        Passenger passenger = passengerRepository.findById(passengerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with ID: " + passengerId));
-
-        // Zmieniamy status pasażera na "Accepted"
-        passenger.setStatus("ACC");
-
-        // Zapisujemy zmiany w bazie danych
-        passengerRepository.save(passenger);
-
-        return ResponseEntity.ok("Passenger status updated to Accepted");
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error updating passenger status: " + e.getMessage());
+    @GetMapping("/{flightId}/occupied-seats")
+    public List<String> getOccupiedSeats(@PathVariable String flightId) {
+        Optional<Flight> flightOpt = flightRepository.findById(flightId);
+        return flightOpt.map(Flight::getOccupiedSeats).orElse(Collections.emptyList());
     }
-}
-
-
-/*
-
-
- */
-// Enum statusu lotu
-public enum FlightStatus {
-    PREPARE, OPEN, CLOSED, FINALIZED
-}
-
-@PutMapping("/{flightId}/status")
-public ResponseEntity<?> updateFlightStatus(@PathVariable String flightId, @RequestBody Map<String, String> body) {
-    String newStatus = body.get("newStatus");
-
-    try {
-        // Walidacja statusu
-        FlightStatus status = FlightStatus.valueOf(newStatus.toUpperCase());
-    } catch (IllegalArgumentException e) {
-        return ResponseEntity.badRequest().body("Invalid status. Allowed values: prepare, open, closed, finalized.");
-    }
-
-    try {
-        // Pobierz lot z bazy danych
-        Flight flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
-
-        // Zaktualizuj status lotu
-        flight.setState(newStatus);
-        flightRepository.save(flight);
-
-        return ResponseEntity.ok("Flight status updated to: " + newStatus);
-    } catch (ResourceNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error updating flight status: " + e.getMessage());
-    }
-}
-
-@GetMapping("/{id}")
-public ResponseEntity<?> getFlightById(@PathVariable String id) {
-    try {
-        Flight flight = flightRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + id));
-
-        Map<String, Object> flightDetails = new HashMap<>();
-        flightDetails.put("id", flight.getId());
-        flightDetails.put("flightNumber", flight.getFlightNumber());
-        flightDetails.put("departureTime", flight.getDepartureTime());
-        flightDetails.put("route", flight.getRoute());
-        flightDetails.put("state", flight.getState());
-
-        return ResponseEntity.ok(flightDetails);
-    } catch (ResourceNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(e.getMessage());
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error fetching flight: " + e.getMessage());
-    }
-}
 }

@@ -45,13 +45,5 @@ public String loginUser(String username, String password) {
     System.out.println("Password matches. Generating token...");
     return jwtUtil.generateToken(user.getUsername(), user.getRoles().get(0));
 
-/*
-    debug
-
-    System.out.println("Password matches. Generating token...");
-    String jwtToken = jwtUtil.generateToken(user.getUsername(), user.getRoles().get(0));
-    System.out.println("Token Generated: " + jwtToken);
-    return jwtToken;
-*/
 }
 }

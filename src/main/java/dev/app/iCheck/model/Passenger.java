@@ -25,6 +25,12 @@ public class Passenger {
 @Field("comments")
 private List<Comment> comments = new ArrayList<>();
 
+
+private String seatNumber; // Numer miejsca pasażera
+
+
+
+
 public static class Comment {
     private String text;
     private String date;
@@ -52,7 +58,7 @@ public static class Comment {
 }
 
     // Konstruktor, gettery i settery
-    public Passenger(String id, String flightId, String name, String surname, String gender, String status, String title) {
+    public Passenger(String id, String flightId, String name, String surname, String gender, String status, String title, String seatNumber) {
         this.id = id;
         this.flightId = flightId;
         this.name = name;
@@ -63,6 +69,8 @@ public static class Comment {
 
         this.baggageList = new ArrayList<>(); // 🔹 Upewniamy się, że lista jest inicjalizowana
         this.comments = new ArrayList<>();
+
+        this.seatNumber = seatNumber; // 🔹 Inicjalizacja pola
     }
 
     public String getId() {
@@ -157,5 +165,17 @@ public static class Comment {
         }
 
         return codes;
+    }
+
+    public String getSeatNumber() {
+        return seatNumber;
+    }
+
+    public void setSeatNumber(String seatNumber, Plane plane) {
+        if (!plane.isSeatAvailable(seatNumber)) {
+            throw new IllegalArgumentException("Seat " + seatNumber + " is already occupied!");
+        }
+        this.seatNumber = seatNumber;
+        plane.assignSeat(seatNumber);
     }
 }

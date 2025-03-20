@@ -9,10 +9,10 @@ public class PassengerAPI extends Passenger {
     private String issueCountry;
 
     // Konstruktor
-    public PassengerAPI(String id, String flightId, String name, String surname, String gender, String status, String title,
+    public PassengerAPI(String id, String flightId, String name, String surname, String gender, String status, String title, String seatNumber,
             String dateOfBirth, String citizenship, String documentType, String serialName, String validUntil,
             String issueCountry) {
-        super(id, flightId, name, surname, gender, status, title);
+        super(id, flightId, name, surname, gender, status, title, seatNumber);
         this.dateOfBirth = dateOfBirth;
         this.citizenship = citizenship;
         this.documentType = documentType;

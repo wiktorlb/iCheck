@@ -28,8 +28,10 @@ import dev.app.iCheck.model.Flight;
 import dev.app.iCheck.model.Passenger;
 import dev.app.iCheck.model.Passenger.Comment;
 import dev.app.iCheck.model.PassengerAPI;
+import dev.app.iCheck.model.Plane;
 import dev.app.iCheck.repository.FlightRepository;
 import dev.app.iCheck.repository.PassengerRepository;
+import dev.app.iCheck.repository.PlaneRepository;
 import dev.app.iCheck.service.FlightService;
 
 import java.io.IOException;
@@ -99,7 +101,7 @@ System.out.println("-----------------------");
 
             String status = "NONE"; // Default status
 
-            passengers.add(new Passenger(null, flightId, name, surname, gender, status, title));
+            passengers.add(new Passenger(null, flightId, name, surname, gender, status, title, null));
         }
         return passengers;
     }
@@ -198,6 +200,7 @@ public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String pas
                 updatedPassengerAPI.getGender(),
                 updatedPassengerAPI.getStatus(),
                 updatedPassengerAPI.getTitle(),
+                updatedPassengerAPI.getSeatNumber(),
                 updatedPassengerAPI.getDateOfBirth(),
                 updatedPassengerAPI.getCitizenship(),
                 updatedPassengerAPI.getDocumentType(),
@@ -306,6 +309,7 @@ public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
                     passengerData.put("gender", passenger.getGender());
                     passengerData.put("status", passenger.getStatus());
                     passengerData.put("title", passenger.getTitle());
+                    passengerData.put("seatNumber", passenger.getSeatNumber());
 
                     // Bagaże
                     List<Map<String, Object>> baggageDetails = new ArrayList<>();
@@ -361,4 +365,36 @@ public ResponseEntity<Passenger> addComment(@PathVariable("id") String passenger
 
     return ResponseEntity.ok(passenger);
 }
+
+
+/* @Autowired
+private PlaneRepository planeRepository;
+
+@PutMapping("/{flightId}/passengers/{passengerId}/seat")
+public ResponseEntity<?> assignSeat(@PathVariable String flightId,
+        @PathVariable String passengerId,
+        @RequestBody Map<String, String> body) {
+    try {
+        String seatNumber = body.get("seatNumber");
+
+        Passenger passenger = passengerRepository.findById(passengerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
+
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found"));
+
+        Plane plane = planeRepository.findById(flight.getPlaneId())
+                .orElseThrow(() -> new ResourceNotFoundException("Plane not found for flight: " + flightId));
+
+        // Przypisz miejsce pasażerowi
+        passenger.setSeatNumber(seatNumber, plane);
+        passengerRepository.save(passenger);
+        planeRepository.save(plane);
+
+        return ResponseEntity.ok("Seat assigned: " + seatNumber);
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error: " + e.getMessage());
+    }
+} */
 }

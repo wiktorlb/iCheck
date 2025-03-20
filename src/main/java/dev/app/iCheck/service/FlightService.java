@@ -53,4 +53,26 @@ public class FlightService {
         passengerRepository.delete(passenger);
         System.out.println("Passenger deleted from database");
     }
+
+    public String assignSeat(String flightId, String passengerId, String seatNumber) {
+        Optional<Flight> flightOpt = flightRepository.findById(flightId);
+        Optional<Passenger> passengerOpt = passengerRepository.findById(passengerId);
+
+        if (flightOpt.isEmpty() || passengerOpt.isEmpty()) {
+            return "Lot lub pasażer nie istnieje.";
+        }
+
+        Flight flight = flightOpt.get();
+        Passenger passenger = passengerOpt.get();
+
+        if (flight.isSeatOccupied(seatNumber)) {
+            return "Miejsce " + seatNumber + " jest już zajęte.";
+        }
+
+        flight.addSeat(seatNumber);
+        flight.getPassengers().add(passenger);
+        flightRepository.save(flight);
+        return "Pasażer " + passenger.getName() + " przypisany do miejsca " + seatNumber + " w locie "
+                + flight.getFlightNumber();
+    }
 }

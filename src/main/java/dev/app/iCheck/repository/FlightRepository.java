@@ -13,4 +13,6 @@ public interface FlightRepository extends MongoRepository<Flight, String> {
     List<Flight> findByDepartureDate(String departureDate);
 
     Optional<Flight> findByFlightNumber(String flightNumber);
+
+    List<Flight> findByPlaneId(String planeId);
 }
