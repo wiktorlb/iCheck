@@ -164,6 +164,11 @@ public static class Comment {
             codes.add("COM");
         }
 
+        // Sprawdź czy pasażer ma przypisane miejsce
+        if (seatNumber != null && !seatNumber.isEmpty()) {
+            codes.add("SEAT");
+        }
+
         return codes;
     }
 
@@ -171,11 +176,7 @@ public static class Comment {
         return seatNumber;
     }
 
-    public void setSeatNumber(String seatNumber, Plane plane) {
-        if (!plane.isSeatAvailable(seatNumber)) {
-            throw new IllegalArgumentException("Seat " + seatNumber + " is already occupied!");
-        }
+    public void setSeatNumber(String seatNumber) {
         this.seatNumber = seatNumber;
-        plane.assignSeat(seatNumber);
     }
 }

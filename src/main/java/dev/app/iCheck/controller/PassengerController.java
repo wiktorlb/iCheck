@@ -283,6 +283,7 @@ public ResponseEntity<?> getPassenger(@PathVariable("passengerId") String passen
         response.put("srrCodes", passenger.getSRRCodes());
         response.put("baggageList", passenger.getBaggageList());
         response.put("comments", passenger.getComments());
+        response.put("FlightId", passenger.getFlightId());
 
         return ResponseEntity.ok(response);
     } catch (ResourceNotFoundException e) {
@@ -330,6 +331,8 @@ public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
                     // SSR kody
                     passengerData.put("srrCodes", passenger.getSRRCodes());
 
+                    passengerData.put("flightId", passenger.getFlightId());
+
                     // Dane dokumentów (jeśli to PassengerAPI)
                     if (passenger instanceof PassengerAPI) {
                         PassengerAPI papi = (PassengerAPI) passenger;
@@ -349,6 +352,13 @@ public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error fetching passengers: " + e.getMessage());
     }
+}
+
+@PostMapping("/{passengerId}/add-srr-code")
+public ResponseEntity<?> addSrrCode(@PathVariable String passengerId, @RequestBody Map<String, String> request) {
+    String srrCode = request.get("srrCode");
+    // Implementacja dodawania kodu SSR
+    return ResponseEntity.ok().build();
 }
 
 // Nowa metoda do aktualizacji komentarza
@@ -397,4 +407,15 @@ public ResponseEntity<?> assignSeat(@PathVariable String flightId,
                 .body("Error: " + e.getMessage());
     }
 } */
+
+@PostMapping("{passengerId}/assign-seat")
+public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) {
+    try {
+        String result = flightService.assignSeat(request.getFlightId(), request.getPassengerId(),
+                request.getSeatNumber());
+        return ResponseEntity.ok(result);
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error assigning seat: " + e.getMessage());
+    }
+}
 }

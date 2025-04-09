@@ -20,7 +20,7 @@ private List<String> seatMap;
         this.seatMap = initializeSeatMap(); // Inicjalizacja mapy miejsc
     }
 
- private List<String> initializeSeatMap() {
+/*  private List<String> initializeSeatMap() {
     List<String> seatMap = new ArrayList<>();
     char[] seatLetters = { 'A', 'B', 'C', 'D', 'E', 'F' };
 
@@ -30,6 +30,22 @@ private List<String> seatMap;
             rowSeats.append(seatLetters[i]);
             if (i == 2)
                 rowSeats.append(" "); // Podział na ABC i DEF
+        }
+        seatMap.add(rowSeats.toString());
+    }
+    return seatMap;
+} */
+private List<String> initializeSeatMap() {
+    List<String> seatMap = new ArrayList<>();
+    char[] seatLetters = { 'A', 'B', 'C', 'D', 'E', 'F' };
+
+    for (int row = 1; row <= 22; row++) {
+        StringBuilder rowSeats = new StringBuilder();
+        for (int i = 0; i < seatLetters.length; i++) {
+            rowSeats.append(row).append(seatLetters[i]);
+            if (i < seatLetters.length - 1) {
+                rowSeats.append(",");
+            }
         }
         seatMap.add(rowSeats.toString());
     }

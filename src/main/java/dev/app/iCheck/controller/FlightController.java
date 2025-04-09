@@ -227,6 +227,7 @@ return ResponseEntity.ok(newFlight);
             flightDetails.put("status", flight.getStatus()); // Zmieniono na status
             flightDetails.put("departureTime", flight.getDepartureTime());
             flightDetails.put("seatMap", flight.getSeatMap());
+            flightDetails.put("occupiedSeats", flight.getOccupiedSeats());
             flightDetails.put("planeId", flight.getPlaneId());
 
             return ResponseEntity.ok(flightDetails);

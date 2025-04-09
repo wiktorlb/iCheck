@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 import dev.app.iCheck.exception.ResourceNotFoundException;
 import dev.app.iCheck.model.Flight;
 import dev.app.iCheck.model.Passenger;
+import dev.app.iCheck.model.Plane;
 import dev.app.iCheck.repository.FlightRepository;
 import dev.app.iCheck.repository.PassengerRepository;
+import dev.app.iCheck.repository.PlaneRepository;
 
 @Service
 public class FlightService {
@@ -21,6 +23,9 @@ public class FlightService {
 
     @Autowired
     private PassengerRepository passengerRepository;
+
+    @Autowired
+    private PlaneRepository planeRepository;
 
     public List<Passenger> getPassengersByFlightId(String flightId) {
         Optional<Flight> flight = flightRepository.findById(flightId);
@@ -54,7 +59,7 @@ public class FlightService {
         System.out.println("Passenger deleted from database");
     }
 
-    public String assignSeat(String flightId, String passengerId, String seatNumber) {
+ /*    public String assignSeat(String flightId, String passengerId, String seatNumber) {
         Optional<Flight> flightOpt = flightRepository.findById(flightId);
         Optional<Passenger> passengerOpt = passengerRepository.findById(passengerId);
 
@@ -74,5 +79,40 @@ public class FlightService {
         flightRepository.save(flight);
         return "Pasażer " + passenger.getName() + " przypisany do miejsca " + seatNumber + " w locie "
                 + flight.getFlightNumber();
-    }
+    } */
+
+ public String assignSeat(String flightId, String passengerId, String seatNumber) {
+     Flight flight = flightRepository.findById(flightId)
+             .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
+
+     Passenger passenger = passengerRepository.findById(passengerId)
+             .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));
+
+     // Sprawdź, czy miejsce jest dostępne
+     if (flight.isSeatOccupied(seatNumber)) {
+         throw new IllegalStateException("Miejsce " + seatNumber + " jest już zajęte");
+     }
+
+     // Sprawdź, czy miejsce istnieje w mapie miejsc
+     boolean seatExists = false;
+     for (String row : flight.getSeatMap()) {
+         if (row.contains(seatNumber)) {
+             seatExists = true;
+             break;
+         }
+     }
+     if (!seatExists) {
+         throw new IllegalArgumentException("Nieprawidłowy numer miejsca: " + seatNumber);
+     }
+
+     // Przypisz miejsce do pasażera
+     passenger.setSeatNumber(seatNumber);
+     passengerRepository.save(passenger);
+
+     // Dodaj miejsce do listy zajętych miejsc
+     flight.addSeat(seatNumber);
+     flightRepository.save(flight);
+
+     return "Miejsce " + seatNumber + " zostało przypisane do pasażera " + passenger.getName();
+ }
 }

@@ -123,10 +123,16 @@ public Flight(String id, String flightNumber, String route, String status, Strin
         this.planeId = planeId;
     }
 
-    public List<String> getOccupiedSeats() {
+/*     public List<String> getOccupiedSeats() {
         return occupiedSeats;
-    }
+    } */
+   public List<String> getOccupiedSeats() {
+    return new ArrayList<>(occupiedSeats);
+}
 
+    public void setOccupiedSeats(List<String> occupiedSeats) {
+        this.occupiedSeats = occupiedSeats;
+    }
     public boolean isSeatOccupied(String seat) {
         return occupiedSeats.contains(seat);
     }
@@ -134,14 +140,6 @@ public Flight(String id, String flightNumber, String route, String status, Strin
     public void addSeat(String seat) {
         occupiedSeats.add(seat);
     }
-
-/*     public List<List<String>> getSeatMap() {
-        return seatMap;
-    }
-
-    public void setSeatMap(List<List<String>> seatMap) {
-        this.seatMap = seatMap;
-    } */
    public List<String> getSeatMap() {
     return seatMap;
 }
