@@ -115,4 +115,33 @@ public class FlightService {
 
      return "Miejsce " + seatNumber + " zostało przypisane do pasażera " + passenger.getName();
  }
+
+ public String releaseSeat(String flightId, String passengerId, String seatNumber) {
+     // Znajdź lot
+     Flight flight = flightRepository.findById(flightId)
+             .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
+
+     // Znajdź pasażera
+     Passenger passenger = passengerRepository.findById(passengerId)
+             .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));
+
+     // Sprawdź, czy pasażer ma przypisane to miejsce
+     if (!seatNumber.equals(passenger.getSeatNumber())) {
+         throw new IllegalArgumentException("Passenger does not have this seat assigned");
+     }
+
+     // Usuń miejsce z pasażera
+     passenger.setSeatNumber(null);
+     passengerRepository.save(passenger);
+
+     // Usuń miejsce z zajętych miejsc w samolocie
+     List<String> occupiedSeats = flight.getOccupiedSeats();
+     if (occupiedSeats != null) {
+         occupiedSeats.remove(seatNumber);
+         flight.setOccupiedSeats(occupiedSeats);
+         flightRepository.save(flight);
+     }
+
+     return "Seat " + seatNumber + " has been released for passenger " + passengerId;
+ }
 }

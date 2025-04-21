@@ -257,4 +257,16 @@ public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) 
         Optional<Flight> flightOpt = flightRepository.findById(flightId);
         return flightOpt.map(Flight::getOccupiedSeats).orElse(Collections.emptyList());
     }
+
+    @PostMapping("/release-seat")
+    public ResponseEntity<?> releaseSeat(@RequestBody SeatAssignmentRequest request) {
+        try {
+            String result = flightService.releaseSeat(request.getFlightId(), request.getPassengerId(),
+                    request.getSeatNumber());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error releasing seat: " + e.getMessage());
+        }
+    }
 }

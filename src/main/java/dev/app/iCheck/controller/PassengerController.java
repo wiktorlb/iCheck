@@ -106,66 +106,6 @@ System.out.println("-----------------------");
         return passengers;
     }
 
-
-/* @PutMapping("/{passengerId}")
-public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String passengerId,
-        @RequestBody PassengerAPI updatedPassengerAPI) {
-    try {
-        // Walidacja danych wejściowych
-        if (passengerId == null || passengerId.trim().isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Passenger ID cannot be null or empty");
-        }
-
-        if (updatedPassengerAPI == null) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Updated passenger data cannot be null");
-        }
-
-        // Sprawdź, czy pasażer istnieje w bazie
-        Passenger existingPassenger = passengerRepository.findById(passengerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));
-
-        // Aktualizuj dane podstawowe
-        existingPassenger.setName(updatedPassengerAPI.getName());
-        existingPassenger.setSurname(updatedPassengerAPI.getSurname());
-        existingPassenger.setGender(updatedPassengerAPI.getGender());
-        existingPassenger.setStatus(updatedPassengerAPI.getStatus());
-        existingPassenger.setTitle(updatedPassengerAPI.getTitle());
-
-        // Stwórz nowy obiekt PassengerAPI z zaktualizowanymi danymi
-        PassengerAPI passengerAPI = new PassengerAPI(
-                existingPassenger.getId(),
-                existingPassenger.getFlightId(),
-                updatedPassengerAPI.getName(),
-                updatedPassengerAPI.getSurname(),
-                updatedPassengerAPI.getGender(),
-                updatedPassengerAPI.getStatus(),
-                updatedPassengerAPI.getTitle(),
-                updatedPassengerAPI.getDateOfBirth(),
-                updatedPassengerAPI.getCitizenship(),
-                updatedPassengerAPI.getDocumentType(),
-                updatedPassengerAPI.getSerialName(),
-                updatedPassengerAPI.getValidUntil(),
-                updatedPassengerAPI.getIssueCountry());
-
-        // Zapisz zaktualizowanego pasażera
-        PassengerAPI savedPassenger = passengerRepository.save(passengerAPI);
-
-        return ResponseEntity.ok(savedPassenger);
-    } catch (ResourceNotFoundException e) {
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(e.getMessage());
-    } catch (Exception e) {
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error updating passenger: " + e.getMessage());
-    }
-} */
-
 @PutMapping("/{passengerId}")
 public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String passengerId,
         @RequestBody PassengerAPI updatedPassengerAPI) {
@@ -252,24 +192,6 @@ public ResponseEntity<?> updatePassengerStatus(@PathVariable String passengerId,
                 .body("Error updating passenger status: " + e.getMessage());
     }
 }
-
-/* @GetMapping("/{passengerId}")
-public ResponseEntity<?> getPassenger(@PathVariable("passengerId") String passengerId) {
-    try {
-        Passenger passenger = passengerRepository.findById(passengerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
-
-        // Dodaj kody SRR do odpowiedzi
-        Map<String, Object> response = new HashMap<>();
-        response.put("passenger", passenger);
-        response.put("srrCodes", passenger.getSRRCodes());
-
-        return ResponseEntity.ok(response);
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error fetching passenger: " + e.getMessage());
-    }
-} */
 
 @GetMapping("/{passengerId}")
 public ResponseEntity<?> getPassenger(@PathVariable("passengerId") String passengerId) {
@@ -377,37 +299,6 @@ public ResponseEntity<Passenger> addComment(@PathVariable("id") String passenger
 }
 
 
-/* @Autowired
-private PlaneRepository planeRepository;
-
-@PutMapping("/{flightId}/passengers/{passengerId}/seat")
-public ResponseEntity<?> assignSeat(@PathVariable String flightId,
-        @PathVariable String passengerId,
-        @RequestBody Map<String, String> body) {
-    try {
-        String seatNumber = body.get("seatNumber");
-
-        Passenger passenger = passengerRepository.findById(passengerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
-
-        Flight flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found"));
-
-        Plane plane = planeRepository.findById(flight.getPlaneId())
-                .orElseThrow(() -> new ResourceNotFoundException("Plane not found for flight: " + flightId));
-
-        // Przypisz miejsce pasażerowi
-        passenger.setSeatNumber(seatNumber, plane);
-        passengerRepository.save(passenger);
-        planeRepository.save(plane);
-
-        return ResponseEntity.ok("Seat assigned: " + seatNumber);
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error: " + e.getMessage());
-    }
-} */
-
 @PostMapping("{passengerId}/assign-seat")
 public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) {
     try {
@@ -416,6 +307,17 @@ public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) 
         return ResponseEntity.ok(result);
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error assigning seat: " + e.getMessage());
+    }
+}
+
+@PostMapping("/release-seat")
+public ResponseEntity<?> releaseSeat(@RequestBody SeatAssignmentRequest request) {
+    try {
+        String result = flightService.releaseSeat(request.getFlightId(), request.getPassengerId(),
+                request.getSeatNumber());
+        return ResponseEntity.ok(result);
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error releasing seat: " + e.getMessage());
     }
 }
 }
