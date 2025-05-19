@@ -6,10 +6,13 @@ F:\iCheck\iCheck\src\main\java\dev\app\iCheck\repository\FlightRepository.java
 F:\iCheck\iCheck\src\main\java\dev\app\iCheck\service\AuthService.java
 F:\iCheck\iCheck\src\main\java\dev\app\iCheck\service\PlaneService.java
 F:\iCheck\iCheck\src\main\java\dev\app\iCheck\controller\AuthController.java
+F:\iCheck\iCheck\src\main\java\dev\app\iCheck\controller\SSRCodeController.java
 F:\iCheck\iCheck\src\main\java\dev\app\iCheck\model\PassengerAPI.java
 F:\iCheck\iCheck\src\main\java\dev\app\iCheck\controller\SeatAssignmentRequest.java
 F:\iCheck\iCheck\src\main\java\dev\app\iCheck\service\BaggageService.java
 F:\iCheck\iCheck\src\main\java\dev\app\iCheck\repository\DestinationRepository.java
+F:\iCheck\iCheck\src\main\java\dev\app\iCheck\model\SSRCode.java
+F:\iCheck\iCheck\src\main\java\dev\app\iCheck\repository\SSRCodeRepository.java
 F:\iCheck\iCheck\src\main\java\dev\app\iCheck\service\PassengerService.java
 F:\iCheck\iCheck\src\main\java\dev\app\iCheck\exception\GlobalExceptionHandler.java
 F:\iCheck\iCheck\src\main\java\dev\app\iCheck\exception\ResourceNotFoundException.java
