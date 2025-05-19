@@ -109,12 +109,7 @@
             <artifactId>jakarta.servlet-api</artifactId>
             <version>5.0.0</version>
         </dependency>
-<!-- Paginator -->
-        <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-web</artifactId>
-</dependency>
-    </dependencies>
+</dependencies>
 
     <build>
         <plugins>

@@ -95,30 +95,6 @@ public class FlightController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Aircraft not found");
             }
 
-/*             // Głębokie kopiowanie seatMap
-            List<List<String>> copiedSeatMap = planeOpt.get().getSeatMap().stream()
-                    .map(ArrayList::new) // Tworzy nową listę dla każdego wiersza
-                    .collect(Collectors.toList());
-
-            // Utwórz nowy flight z kopiowaną mapą miejsc
-            Flight newFlight = new Flight(
-                    flight.getId(),
-                    flight.getFlightNumber(),
-                    flight.getRoute(),
-                    flight.getStatus(), // Zmieniono na status
-                    flight.getDepartureDate(),
-                    flight.getDepartureTime(),
-                    flight.getAircraftId(),
-                    flight.getPlaneId(),
-                    copiedSeatMap,
-                    flight.getOccupiedSeats(),
-                    flight.getPassengers());
-
-            // Ustawienie domyślnego statusu i zapisanie nowego lotu
-            newFlight.setStatus("Prepare");
-            flightRepository.save(newFlight);
-
-            return ResponseEntity.ok(newFlight); */
 
             // Skopiowanie seatMap jako płaskiej listy stringów
 List<String> copiedSeatMap = new ArrayList<>(planeOpt.get().getSeatMap());
