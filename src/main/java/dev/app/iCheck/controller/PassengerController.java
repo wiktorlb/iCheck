@@ -320,4 +320,60 @@ public ResponseEntity<?> releaseSeat(@RequestBody SeatAssignmentRequest request)
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error releasing seat: " + e.getMessage());
     }
 }
+
+@PutMapping("/flights/{flightId}/board-passengers")
+public ResponseEntity<?> boardPassengers(@PathVariable String flightId, @RequestBody List<String> passengerIds) {
+    try {
+        // Validate input
+        if (passengerIds == null || passengerIds.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Passenger IDs list cannot be null or empty");
+        }
+
+        // Get all passengers in one query
+        List<Passenger> passengers = passengerRepository.findAllById(passengerIds);
+
+        // Validate that all passengers exist and belong to the specified flight
+        for (Passenger passenger : passengers) {
+            if (!passenger.getFlightId().equals(flightId)) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("Passenger " + passenger.getId() + " does not belong to flight " + flightId);
+            }
+        }
+
+        // Update all passengers' status to BOARDED
+        passengers.forEach(passenger -> passenger.setStatus("BOARDED"));
+
+        // Save all passengers in one batch operation
+        passengerRepository.saveAll(passengers);
+
+        // Return updated passengers with their details
+        List<Map<String, Object>> updatedPassengers = passengers.stream()
+                .map(passenger -> {
+                    Map<String, Object> passengerData = new HashMap<>();
+                    passengerData.put("id", passenger.getId());
+                    passengerData.put("name", passenger.getName());
+                    passengerData.put("surname", passenger.getSurname());
+                    passengerData.put("gender", passenger.getGender());
+                    passengerData.put("status", passenger.getStatus());
+                    passengerData.put("title", passenger.getTitle());
+                    passengerData.put("seatNumber", passenger.getSeatNumber());
+                    passengerData.put("baggageList", passenger.getBaggageList());
+                    passengerData.put("comments", passenger.getComments());
+                    passengerData.put("srrCodes", passenger.getSRRCodes());
+                    passengerData.put("flightId", passenger.getFlightId());
+                    return passengerData;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(updatedPassengers);
+
+    } catch (Exception e) {
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error boarding passengers: " + e.getMessage());
+    }
+}
 }
