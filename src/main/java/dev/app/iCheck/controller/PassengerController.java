@@ -376,4 +376,73 @@ public ResponseEntity<?> boardPassengers(@PathVariable String flightId, @Request
                 .body("Error boarding passengers: " + e.getMessage());
     }
 }
+
+@GetMapping("/flights/{flightId}/passengers-with-srr-filtered")
+public ResponseEntity<?> getFilteredPassengersWithSrr(@PathVariable String flightId) {
+    try {
+        // Pobierz wszystkich pasażerów dla danego lotu
+        List<Passenger> allPassengers = passengerRepository.findByFlightId(flightId);
+
+        // Filtruj pasażerów po statusie
+        List<Passenger> filteredPassengers = allPassengers.stream()
+                .filter(passenger -> {
+                    String status = passenger.getStatus();
+                    return "ACC".equals(status) || "BOARDED".equals(status) || "STBY".equals(status);
+                })
+                .collect(Collectors.toList());
+
+        // Przekształć pasażerów do formatu odpowiedzi
+        List<Map<String, Object>> passengersWithDetails = filteredPassengers.stream()
+                .map(passenger -> {
+                    Map<String, Object> passengerData = new HashMap<>();
+                    // Podstawowe dane
+                    passengerData.put("id", passenger.getId());
+                    passengerData.put("name", passenger.getName());
+                    passengerData.put("surname", passenger.getSurname());
+                    passengerData.put("gender", passenger.getGender());
+                    passengerData.put("status", passenger.getStatus());
+                    passengerData.put("title", passenger.getTitle());
+                    passengerData.put("seatNumber", passenger.getSeatNumber());
+
+                    // Bagaże
+                    List<Map<String, Object>> baggageDetails = new ArrayList<>();
+                    if (passenger.getBaggageList() != null) {
+                        for (Baggage baggage : passenger.getBaggageList()) {
+                            Map<String, Object> baggageMap = new HashMap<>();
+                            baggageMap.put("id", baggage.getId());
+                            baggageMap.put("weight", baggage.getWeight());
+                            baggageMap.put("type", baggage.getType());
+                            baggageDetails.add(baggageMap);
+                        }
+                    }
+                    passengerData.put("baggageList", baggageDetails);
+
+                    // Komentarze
+                    passengerData.put("comments", passenger.getComments());
+
+                    // SSR kody
+                    passengerData.put("srrCodes", passenger.getSRRCodes());
+
+                    passengerData.put("flightId", passenger.getFlightId());
+
+                    // Dane dokumentów (jeśli to PassengerAPI)
+                    if (passenger instanceof PassengerAPI) {
+                        PassengerAPI papi = (PassengerAPI) passenger;
+                        passengerData.put("documentType", papi.getDocumentType());
+                        passengerData.put("citizenship", papi.getCitizenship());
+                        passengerData.put("serialName", papi.getSerialName());
+                        passengerData.put("validUntil", papi.getValidUntil());
+                        passengerData.put("issueCountry", papi.getIssueCountry());
+                    }
+
+                    return passengerData;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(passengersWithDetails);
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error fetching passengers: " + e.getMessage());
+    }
+}
 }
