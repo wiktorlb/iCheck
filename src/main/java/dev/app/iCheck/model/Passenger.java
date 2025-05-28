@@ -20,21 +20,17 @@ public class Passenger {
     private String status;
     private String title;
 
-    private List<Baggage> baggageList = new ArrayList<>(); // 🔹 Inicjalizacja listy; // Lista bagaży dla pasażera
-    // W modelu pasażera
+    private List<Baggage> baggageList = new ArrayList<>();
 @Field("comments")
 private List<Comment> comments = new ArrayList<>();
 
 
-private String seatNumber; // Numer miejsca pasażera
-
-
-
+private String seatNumber;
 
 public static class Comment {
     private String text;
     private String date;
-    private String addedBy; // Możesz dodać również użytkownika, który dodał komentarz
+    private String addedBy;
     // Gettery i settery
     public String getText() {
         return text;
@@ -67,10 +63,10 @@ public static class Comment {
         this.status = status;
         this.title = title;
 
-        this.baggageList = new ArrayList<>(); // 🔹 Upewniamy się, że lista jest inicjalizowana
+        this.baggageList = new ArrayList<>();
         this.comments = new ArrayList<>();
 
-        this.seatNumber = seatNumber; // 🔹 Inicjalizacja pola
+        this.seatNumber = seatNumber;
     }
 
     public String getId() {
@@ -122,7 +118,7 @@ public static class Comment {
 
 
     public List<Baggage> getBaggageList() {
-        if (baggageList == null) { // 🔹 Dodane zabezpieczenie
+        if (baggageList == null) {
             baggageList = new ArrayList<>();
         }
         return baggageList;

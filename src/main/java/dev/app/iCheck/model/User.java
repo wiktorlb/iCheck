@@ -15,12 +15,12 @@ import java.util.List;
 public class User {
 
     @Id
-    private String id; // MongoDB ID
+    private String id;
     private String username;
     private String email;
     private String password;
     private List<String> roles;
-    private Instant createdAt; // Data utworzenia konta
+    private Instant createdAt;
 
     public String getId() {
         return id;

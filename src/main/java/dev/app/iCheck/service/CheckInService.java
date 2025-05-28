@@ -11,6 +11,10 @@ import dev.app.iCheck.repository.AircraftRepository;
 import dev.app.iCheck.repository.FlightRepository;
 import dev.app.iCheck.repository.PlaneRepository;
 
+/**
+ * Service class for handling check-in operations.
+ * Manages flight check-in process and seat assignments.
+ */
 @Service
 public class CheckInService {
     private final FlightRepository flightRepository;
@@ -24,6 +28,14 @@ public class CheckInService {
         this.planeRepository = planeRepository;
     }
 
+    /**
+     * Assigns a seat to a flight.
+     * Finds the first available seat in the aircraft's seat map and assigns it.
+     *
+     * @param flightId The ID of the flight
+     * @return The assigned seat number
+     * @throws RuntimeException if the flight, aircraft, or plane model is not found, or if no seats are available
+     */
     public String assignSeat(String flightId) {
         Flight flight = flightRepository.findById(flightId)
                 .orElseThrow(() -> new RuntimeException("Lot nie znaleziony"));
@@ -33,15 +45,15 @@ public class CheckInService {
         Plane plane = planeRepository.findById(aircraft.getPlaneId())
                 .orElseThrow(() -> new RuntimeException("Model samolotu nie znaleziony"));
 
-        List<String> seatMap = plane.getFlatSeatMap(); // Pobranie listy wszystkich miejsc
+        List<String> seatMap = plane.getFlatSeatMap();
         List<String> occupiedSeats = flight.getOccupiedSeats();
 
         for (String seat : seatMap) {
             if (!occupiedSeats.contains(seat)) {
                 flight.addSeat(seat);
-                plane.assignSeat(seat); // Oznacz miejsce jako zajęte
+                plane.assignSeat(seat);
                 flightRepository.save(flight);
-                planeRepository.save(plane); // Zapisz zaktualizowaną mapę miejsc
+                planeRepository.save(plane);
                 return seat;
             }
         }

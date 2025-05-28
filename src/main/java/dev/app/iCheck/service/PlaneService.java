@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service;
 import dev.app.iCheck.model.Plane;
 import dev.app.iCheck.repository.PlaneRepository;
 
+/**
+ * Service class for managing plane-related operations.
+ * Handles plane initialization and management.
+ */
 @Service
 public class PlaneService {
     private static final Logger logger = LoggerFactory.getLogger(PlaneService.class);
@@ -17,6 +21,10 @@ public class PlaneService {
         this.planeRepository = planeRepository;
     }
 
+    /**
+     * Initializes default planes in the database if they don't exist.
+     * This method is called after the service is constructed.
+     */
     @PostConstruct
     public void initDefaultPlanes() {
         logger.info("Sprawdzanie domyślnych samolotów...");

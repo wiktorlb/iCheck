@@ -6,8 +6,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "baggageId")
 public class BaggageId {
     @Id
-    private String id; // Jedno unikalne ID, np. "lastBaggageId"
-    private String lastUsedId; // Ostatnie użyte ID bagażu
+    private String id;
+    private String lastUsedId;
 
     // Gettery i settery
     public String getId() {

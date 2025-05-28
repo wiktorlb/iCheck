@@ -26,6 +26,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Controller class for managing flight-related operations.
+ * Provides endpoints for adding, retrieving, and updating flights, as well as managing seat assignments.
+ */
 @RestController
 @RequestMapping("/api/flights")
 public class FlightController {
@@ -55,31 +59,36 @@ public class FlightController {
         this.planeRepository = planeRepository;
     }
 
-    // Endpoint do dodawania lotów
+    /**
+     * Adds a new flight.
+     *
+     * @param flight The Flight object to add.
+     * @return ResponseEntity with the added flight or an error message.
+     */
     @PostMapping("/add-flight")
     public ResponseEntity<?> addFlight(@RequestBody Flight flight) {
         try {
-            System.out.println("Received flight: " + flight); // Dodaj logowanie
-            // Sprawdzenie unikalności numeru lotu
+            System.out.println("Received flight: " + flight);
+            // Check for unique flight number
             Optional<Flight> existingFlight = flightRepository.findByFlightNumber(flight.getFlightNumber());
             if (existingFlight.isPresent()) {
                 return ResponseEntity.badRequest().body("Flight number already exists: " + flight.getFlightNumber());
             }
 
-            // Sprawdzenie poprawności trasy
+            // Validate route format
             String[] routeParts = flight.getRoute().split(" - ");
             if (routeParts.length != 2) {
                 return ResponseEntity.badRequest().body("Invalid route format. Expected 'KTW - DEST_ID'.");
             }
 
-            // Walidacja miejsca docelowego
+            // Validate destination
             String destinationCode = routeParts[1];
             Optional<Destination> destinationOpt = destinationRepository.findById(destinationCode);
             if (destinationOpt.isEmpty()) {
                 return ResponseEntity.badRequest().body("Destination code not found: " + destinationCode);
             }
 
-            // Walidacja samolotu
+            // Validate plane
             if (flight.getPlaneId() == null || flight.getPlaneId().isEmpty()) {
                 return ResponseEntity.badRequest().body("Plane ID is required.");
             }
@@ -89,17 +98,16 @@ public class FlightController {
                 return ResponseEntity.badRequest().body("Plane not found: " + flight.getPlaneId());
             }
 
-            // Znajdź samolot na podstawie ID samolotu w Aircraft
+            // Find aircraft based on Aircraft ID
             Optional<Aircraft> aircraftOpt = aircraftRepository.findById(flight.getAircraftId());
             if (aircraftOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Aircraft not found");
             }
 
-
-            // Skopiowanie seatMap jako płaskiej listy stringów
+            // Copy seatMap as a flat list of strings
 List<String> copiedSeatMap = new ArrayList<>(planeOpt.get().getSeatMap());
 
-// Utworzenie nowego obiektu Flight z poprawioną strukturą seatMap
+// Create a new Flight object with the corrected seatMap structure
 Flight newFlight = new Flight(
         flight.getId(),
         flight.getFlightNumber(),
@@ -109,14 +117,14 @@ Flight newFlight = new Flight(
         flight.getDepartureTime(),
         flight.getAircraftId(),
         flight.getPlaneId(),
-        copiedSeatMap, // Poprawione przekazywanie seatMap
+        copiedSeatMap, // Corrected seatMap passing
         flight.getOccupiedSeats(),
         flight.getPassengers());
 
-// Ustawienie domyślnego statusu
+// Set default status
 newFlight.setStatus("Prepare");
 
-// Zapisanie nowego lotu do bazy
+// Save the new flight to the database
 flightRepository.save(newFlight);
 
 return ResponseEntity.ok(newFlight);
@@ -125,7 +133,12 @@ return ResponseEntity.ok(newFlight);
         }
     }
 
-    // Endpoint do pobierania wszystkich lotów
+    /**
+     * Retrieves all flights, optionally filtered by date.
+     *
+     * @param date The departure date to filter flights by (optional).
+     * @return ResponseEntity with a list of flights.
+     */
     @GetMapping
     public ResponseEntity<?> getFlights(@RequestParam(required = false) String date) {
         try {
@@ -133,13 +146,18 @@ return ResponseEntity.ok(newFlight);
                     ? flightRepository.findByDepartureDate(date)
                     : flightRepository.findAll();
 
-            return ResponseEntity.ok(flights); // Zwracaj zawsze listę
+            return ResponseEntity.ok(flights);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
 
-    // Endpoint do pobierania mapy miejsc danego lotu
+    /**
+     * Retrieves the seat map for a specific flight.
+     *
+     * @param flightId The ID of the flight.
+     * @return ResponseEntity with the seat map or an error message.
+     */
     @GetMapping("/{flightId}/seatmap")
     public ResponseEntity<?> getSeatMap(@PathVariable String flightId) {
         try {
@@ -153,7 +171,12 @@ return ResponseEntity.ok(newFlight);
         }
     }
 
-    // Endpoint do pobierania pasażerów danego lotu
+    /**
+     * Retrieves passengers for a specific flight.
+     *
+     * @param flightId The ID of the flight.
+     * @return ResponseEntity with a list of passengers or an error message.
+     */
     @GetMapping("/{flightId}/passengers")
     public ResponseEntity<?> getPassengersByFlightId(@PathVariable String flightId) {
         try {
@@ -164,13 +187,19 @@ return ResponseEntity.ok(newFlight);
         }
     }
 
-    // Endpoint do zmiany statusu lotu
+    /**
+     * Updates the status of a flight.
+     *
+     * @param flightId  The ID of the flight to update.
+     * @param body      A map containing the new status.
+     * @return ResponseEntity indicating the success or failure of the status update.
+     */
     @PutMapping("/{flightId}/status")
     public ResponseEntity<?> updateFlightStatus(@PathVariable String flightId, @RequestBody Map<String, String> body) {
         String newStatus = body.get("newStatus");
 
         try {
-            // Sprawdzenie poprawności statusu
+            // Validate status
             Flight.FlightStatus status = Flight.FlightStatus.valueOf(newStatus.toUpperCase());
 
             Flight flight = flightRepository.findById(flightId)
@@ -189,7 +218,12 @@ return ResponseEntity.ok(newFlight);
         }
     }
 
-    // Endpoint do pobierania szczegółów lotu
+    /**
+     * Retrieves details of a specific flight by ID.
+     *
+     * @param id The ID of the flight to retrieve.
+     * @return ResponseEntity with the flight details or an error message.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<?> getFlightById(@PathVariable String id) {
         try {
@@ -200,7 +234,7 @@ return ResponseEntity.ok(newFlight);
             flightDetails.put("id", flight.getId());
             flightDetails.put("flightNumber", flight.getFlightNumber());
             flightDetails.put("route", flight.getRoute());
-            flightDetails.put("status", flight.getStatus()); // Zmieniono na status
+            flightDetails.put("status", flight.getStatus()); // Changed to status
             flightDetails.put("departureTime", flight.getDepartureTime());
             flightDetails.put("seatMap", flight.getSeatMap());
             flightDetails.put("occupiedSeats", flight.getOccupiedSeats());
@@ -212,11 +246,12 @@ return ResponseEntity.ok(newFlight);
         }
     }
 
-
-/*     @PostMapping("/assign-seat")
-    public String assignSeat(@RequestBody SeatAssignmentRequest request) {
-        return flightService.assignSeat(request.getFlightId(), request.getPassengerId(), request.getSeatNumber());
-    } */
+   /**
+    * Assigns a seat to a passenger for a specific flight.
+    *
+    * @param request The SeatAssignmentRequest containing flight ID, passenger ID, and seat number.
+    * @return ResponseEntity indicating the success or failure of the seat assignment.
+    */
    @PostMapping("/assign-seat")
 public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) {
     try {
@@ -228,12 +263,24 @@ public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) 
     }
 }
 
+    /**
+     * Retrieves the list of occupied seats for a specific flight.
+     *
+     * @param flightId The ID of the flight.
+     * @return A list of occupied seat numbers.
+     */
     @GetMapping("/{flightId}/occupied-seats")
     public List<String> getOccupiedSeats(@PathVariable String flightId) {
         Optional<Flight> flightOpt = flightRepository.findById(flightId);
         return flightOpt.map(Flight::getOccupiedSeats).orElse(Collections.emptyList());
     }
 
+    /**
+     * Releases a seat assigned to a passenger for a specific flight.
+     *
+     * @param request The SeatAssignmentRequest containing flight ID, passenger ID, and seat number.
+     * @return ResponseEntity indicating the success or failure of the seat release.
+     */
     @PostMapping("/release-seat")
     public ResponseEntity<?> releaseSeat(@RequestBody SeatAssignmentRequest request) {
         try {

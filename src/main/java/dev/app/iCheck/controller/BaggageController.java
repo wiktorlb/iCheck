@@ -20,6 +20,10 @@ import dev.app.iCheck.repository.PassengerRepository;
 import dev.app.iCheck.service.BaggageService;
 import dev.app.iCheck.service.FlightService;
 
+/**
+ * Controller for managing baggage for passengers.
+ * Provides endpoints for adding baggage to a passenger.
+ */
 @RestController
 @RequestMapping("/api/passengers")
 public class BaggageController {
@@ -31,6 +35,13 @@ public class BaggageController {
     private BaggageService baggageService;
 
 
+/**
+ * Adds a new baggage item to a passenger.
+ *
+ * @param passengerId The ID of the passenger to add baggage to.
+ * @param baggage     The Baggage object to add.
+ * @return ResponseEntity with the updated passenger or a not found status.
+ */
 @PutMapping("/{passengerId}/add-baggage")
 public ResponseEntity<?> addBaggage(@PathVariable String passengerId, @RequestBody Baggage baggage) {
     String baggageId = baggageService.generateBaggageId();
@@ -40,7 +51,7 @@ public ResponseEntity<?> addBaggage(@PathVariable String passengerId, @RequestBo
     if (passengerOpt.isPresent()) {
         Passenger passenger = passengerOpt.get();
 
-        // 🔹 Zapewniamy, że lista nie jest null
+        // Ensure the list is not null
         if (passenger.getBaggageList() == null) {
             passenger.setBaggageList(new ArrayList<>());
         }

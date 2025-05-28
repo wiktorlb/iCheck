@@ -22,14 +22,12 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
-    // Pobieranie wszystkich użytkowników
      @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userRepository.findAll();
         return ResponseEntity.ok(users);
     }
 
-    // Dodawanie roli użytkownikowi
     @PutMapping("/{userId}/roles/add")
     public ResponseEntity<String> addRole(@PathVariable String userId, @RequestBody String role) {
         Optional<User> userOptional = userRepository.findById(userId);
@@ -37,7 +35,6 @@ public class UserController {
         if (userOptional.isPresent()) {
             User user = userOptional.get();
 
-            // Upewnij się, że rola jest zapisana jako zwykły string
             role = role.replaceAll("\"", "").trim();
 
             if (!user.getRoles().contains(role)) {
@@ -58,7 +55,6 @@ public class UserController {
     if (userOptional.isPresent()) {
         User user = userOptional.get();
 
-        // Upewnij się, że rola jest zapisana jako zwykły string
         role = role.replaceAll("\"", "").trim();
 
         if (user.getRoles().contains(role)) {

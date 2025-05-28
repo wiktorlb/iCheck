@@ -8,30 +8,46 @@ import org.springframework.stereotype.Service;
 import dev.app.iCheck.model.BaggageId;
 import dev.app.iCheck.repository.BaggageIdRepository;
 
+/**
+ * Service class for managing baggage-related operations.
+ * Handles baggage ID generation and management.
+ */
 @Service
 public class BaggageService {
 
     @Autowired
     private BaggageIdRepository baggageIdRepository;
 
-    // Generowanie nowego ID bagażu
+    /**
+     * Generates a unique baggage ID.
+     * Retrieves the last used ID from the database and increments it.
+     *
+     * @return A unique baggage ID string
+     */
     public String generateBaggageId() {
-        String lastBaggageId = getLastBaggageId(); // Pobierz ostatnie ID z bazy
-        String newBaggageId = incrementBaggageId(lastBaggageId); // Inkrementuj ID
+        String lastBaggageId = getLastBaggageId();
+        String newBaggageId = incrementBaggageId(lastBaggageId);
 
-        // Zaktualizuj ostatnie ID w bazie
         updateLastBaggageId(newBaggageId);
 
         return newBaggageId;
     }
 
-    // Pobierz ostatnie ID z bazy
+    /**
+     * Retrieves the last used baggage ID from the database.
+     *
+     * @return The last used baggage ID
+     */
     private String getLastBaggageId() {
         BaggageId baggageId = baggageIdRepository.findById("lastBaggageId").orElse(new BaggageId());
-        return baggageId.getLastUsedId() != null ? baggageId.getLastUsedId() : "AA000000"; // Domyślne ID
+        return baggageId.getLastUsedId() != null ? baggageId.getLastUsedId() : "AA000000";
     }
 
-    // Zaktualizuj ostatnie ID w bazie
+    /**
+     * Updates the last used baggage ID in the database.
+     *
+     * @param newBaggageId The new baggage ID to store
+     */
     private void updateLastBaggageId(String newBaggageId) {
         BaggageId baggageId = baggageIdRepository.findById("lastBaggageId").orElse(new BaggageId());
         baggageId.setId("lastBaggageId");
@@ -39,9 +55,14 @@ public class BaggageService {
         baggageIdRepository.save(baggageId);
     }
 
-    // Funkcja do inkrementacji ID
+    /**
+     * Increments the baggage ID according to the specified format.
+     *
+     * @param currentId The current baggage ID
+     * @return The incremented baggage ID
+     * @throws IllegalArgumentException if the current ID format is invalid
+     */
     private String incrementBaggageId(String currentId) {
-        // Twoja logika inkrementowania ID bagażu
         Pattern pattern = Pattern.compile("([A-Z]{2})(\\d{6})");
         Matcher matcher = pattern.matcher(currentId);
 
@@ -52,17 +73,22 @@ public class BaggageService {
         String prefix = matcher.group(1);
         int number = Integer.parseInt(matcher.group(2));
 
-        number++; // Zwiększ liczbową część
+        number++;
 
-        if (number > 999999) { // Jeśli przekroczono limit, zmień prefiks
+        if (number > 999999) {
             prefix = nextPrefix(prefix);
-            number = 1; // Reset numeracji
+            number = 1;
         }
 
         return String.format("%s%06d", prefix, number);
     }
 
-    // Funkcja do zmiany prefiksu
+    /**
+     * Generates the next prefix in sequence.
+     *
+     * @param prefix The current prefix
+     * @return The next prefix in sequence
+     */
     private String nextPrefix(String prefix) {
         char first = prefix.charAt(0);
         char second = prefix.charAt(1);

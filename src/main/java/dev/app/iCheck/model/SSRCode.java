@@ -18,7 +18,6 @@ public class SSRCode {
 
     private boolean isActive;
 
-    // Konstruktory
     public SSRCode() {
     }
 
@@ -29,7 +28,6 @@ public class SSRCode {
         this.isActive = isActive;
     }
 
-    // Gettery i Settery
     public String getId() {
         return id;
     }

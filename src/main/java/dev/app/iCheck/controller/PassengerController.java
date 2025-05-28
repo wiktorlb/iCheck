@@ -38,6 +38,10 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 
+/**
+ * Controller class for managing passenger-related operations.
+ * Handles requests for uploading, updating, retrieving, and managing passengers for flights.
+ */
 @RestController
 @RequestMapping("/api/passengers")
 public class PassengerController {
@@ -50,32 +54,47 @@ public class PassengerController {
     @Autowired
     private FlightRepository flightRepository;
 
+    /**
+     * Uploads a list of passengers from a file for a specific flight.
+     *
+     * @param flightId The ID of the flight to add passengers to.
+     * @param file     The multipart file containing passenger data.
+     * @return ResponseEntity indicating the success or failure of the upload.
+     */
     @PostMapping("/{flightId}/upload")
     public ResponseEntity<?> uploadPassengers(@PathVariable("flightId") String flightId,
             @RequestParam("file") MultipartFile file) {
         try {
-            // Przetwarzanie pliku tekstowego
+            // Process the text file
             List<Passenger> passengers = parseFile(file, flightId);
 
-            // Zapis pasażerów do bazy danych
+            // Save passengers to the database
             passengerRepository.saveAll(passengers);
 
-            return ResponseEntity.ok("Pasażerowie zostali pomyślnie dodani do lotu o ID: " + flightId);
+            return ResponseEntity.ok("Passengers successfully added to flight with ID: " + flightId);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Wystąpił błąd: " + e.getMessage());
+            return ResponseEntity.status(500).body("An error occurred: " + e.getMessage());
         }
     }
 
+    /**
+     * Parses a multipart file containing passenger data and returns a list of Passenger objects.
+     *
+     * @param file     The multipart file to parse.
+     * @param flightId The ID of the flight the passengers belong to.
+     * @return A list of Passenger objects created from the file data.
+     * @throws IOException if an I/O error occurs while reading the file.
+     */
     private List<Passenger> parseFile(MultipartFile file, String flightId) throws IOException {
         List<Passenger> passengers = new ArrayList<>();
         BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
 
         String line;
         while ((line = reader.readLine()) != null) {
-            // Przetwarzanie każdej linii
-            String[] parts = line.trim().split("\\s+"); // Split by spaces, handling multiple spaces
+            // Process each line
+            String[] parts = line.trim().split("\s+"); // Split by spaces, handling multiple spaces
             if (parts.length < 3)
-                continue; // Pominięcie niepoprawnych linii
+                continue; // Skip invalid lines
 
             // Gender is always the last element
             String rawGender = parts[parts.length - 1].toUpperCase();
@@ -95,9 +114,9 @@ public class PassengerController {
             // Name is everything between surname and title
             int nameEndIndex = title.equals("NONE") ? parts.length - 1 : parts.length - 2;
             String name = String.join(" ", Arrays.copyOfRange(parts, 1, nameEndIndex));
-            System.out.println("zapis z pliku");
+            System.out.println("Reading from file");
 System.out.println("-----------------------");
-            System.out.println("Imię: " + name + ", Nazwisko: " + surname + ", Tytuł: " + title + ", Płeć: " + gender);
+            System.out.println("Name: " + name + ", Surname: " + surname + ", Title: " + title + ", Gender: " + gender);
 
             String status = "NONE"; // Default status
 
@@ -106,11 +125,18 @@ System.out.println("-----------------------");
         return passengers;
     }
 
+/**
+ * Updates the details of an existing passenger.
+ *
+ * @param passengerId         The ID of the passenger to update.
+ * @param updatedPassengerAPI The PassengerAPI object containing the updated passenger data.
+ * @return ResponseEntity with the updated passenger data or an error message.
+ */
 @PutMapping("/{passengerId}")
 public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String passengerId,
         @RequestBody PassengerAPI updatedPassengerAPI) {
     try {
-        // Walidacja danych wejściowych
+        // Input data validation
         if (passengerId == null || passengerId.trim().isEmpty()) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -123,15 +149,15 @@ public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String pas
                     .body("Updated passenger data cannot be null");
         }
 
-        // Sprawdź, czy pasażer istnieje w bazie
+        // Check if passenger exists in the database
         Passenger existingPassenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));
 
-        // Zachowaj istniejące dane
+        // Preserve existing data
         List<Baggage> existingBaggage = existingPassenger.getBaggageList();
         List<Comment> existingComments = existingPassenger.getComments();
 
-        // Stwórz nowy obiekt PassengerAPI z zaktualizowanymi danymi
+        // Create a new PassengerAPI object with updated data
         PassengerAPI passengerAPI = new PassengerAPI(
                 existingPassenger.getId(),
                 existingPassenger.getFlightId(),
@@ -148,18 +174,18 @@ public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String pas
                 updatedPassengerAPI.getValidUntil(),
                 updatedPassengerAPI.getIssueCountry());
 
-        // Przywróć zachowane dane
+        // Restore preserved data
         passengerAPI.setBaggageList(existingBaggage);
         passengerAPI.setComments(existingComments);
 
-        // Zapisz zaktualizowanego pasażera
+        // Save the updated passenger
         PassengerAPI savedPassenger = passengerRepository.save(passengerAPI);
 
-        // Pobierz świeże dane z bazy
+        // Fetch fresh data from the database
         Passenger refreshedPassenger = passengerRepository.findById(savedPassenger.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found after save"));
 
-        // Zwróć odpowiedź z aktualnymi danymi
+        // Return response with current data
         Map<String, Object> response = new HashMap<>();
         response.put("passenger", refreshedPassenger);
         response.put("srrCodes", refreshedPassenger.getSRRCodes());
@@ -177,13 +203,20 @@ public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String pas
     }
 }
 
+/**
+ * Updates the status of an existing passenger.
+ *
+ * @param passengerId The ID of the passenger to update the status for.
+ * @param status      The new status for the passenger.
+ * @return ResponseEntity with the updated passenger or an error message.
+ */
 @PutMapping("/{passengerId}/status")
 public ResponseEntity<?> updatePassengerStatus(@PathVariable String passengerId, @RequestBody String status) {
     try {
         Passenger passenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
 
-        passenger.setStatus(status.replaceAll("[\"{}]", "")); // Usuwa cudzysłowy i klamry JSON
+        passenger.setStatus(status.replaceAll("[\"{}]", "")); // Remove JSON quotes and braces
 
         passengerRepository.save(passenger);
         return ResponseEntity.ok(passenger);
@@ -193,13 +226,19 @@ public ResponseEntity<?> updatePassengerStatus(@PathVariable String passengerId,
     }
 }
 
+/**
+ * Retrieves the details of a single passenger by ID.
+ *
+ * @param passengerId The ID of the passenger to retrieve.
+ * @return ResponseEntity with the passenger details or an error message.
+ */
 @GetMapping("/{passengerId}")
 public ResponseEntity<?> getPassenger(@PathVariable("passengerId") String passengerId) {
     try {
         Passenger passenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
 
-        // Przygotuj odpowiedź z wszystkimi potrzebnymi danymi
+        // Prepare response with all necessary data
         Map<String, Object> response = new HashMap<>();
         response.put("passenger", passenger);
         response.put("srrCodes", passenger.getSRRCodes());
@@ -217,6 +256,12 @@ public ResponseEntity<?> getPassenger(@PathVariable("passengerId") String passen
     }
 }
 
+/**
+ * Retrieves a list of passengers with SSR details for a given flight.
+ *
+ * @param flightId The ID of the flight to retrieve passengers for.
+ * @return ResponseEntity with a list of passengers and their details, including SSR codes and baggage.
+ */
 @GetMapping("/flights/{flightId}/passengers-with-srr")
 public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
     try {
@@ -225,7 +270,7 @@ public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
         List<Map<String, Object>> passengersWithDetails = passengers.stream()
                 .map(passenger -> {
                     Map<String, Object> passengerData = new HashMap<>();
-                    // Podstawowe dane
+                    // Basic data
                     passengerData.put("id", passenger.getId());
                     passengerData.put("name", passenger.getName());
                     passengerData.put("surname", passenger.getSurname());
@@ -234,28 +279,28 @@ public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
                     passengerData.put("title", passenger.getTitle());
                     passengerData.put("seatNumber", passenger.getSeatNumber());
 
-                    // Bagaże
+                    // Baggage
                     List<Map<String, Object>> baggageDetails = new ArrayList<>();
                     if (passenger.getBaggageList() != null) {
                         for (Baggage baggage : passenger.getBaggageList()) {
                             Map<String, Object> baggageMap = new HashMap<>();
                             baggageMap.put("id", baggage.getId());
                             baggageMap.put("weight", baggage.getWeight());
-                            baggageMap.put("type", baggage.getType()); // Dodajemy typ bagażu
+                            baggageMap.put("type", baggage.getType()); // Add baggage type
                             baggageDetails.add(baggageMap);
                         }
                     }
                     passengerData.put("baggageList", baggageDetails);
 
-                    // Komentarze
+                    // Comments
                     passengerData.put("comments", passenger.getComments());
 
-                    // SSR kody
+                    // SSR codes
                     passengerData.put("srrCodes", passenger.getSRRCodes());
 
                     passengerData.put("flightId", passenger.getFlightId());
 
-                    // Dane dokumentów (jeśli to PassengerAPI)
+                    // Document data (if it's PassengerAPI)
                     if (passenger instanceof PassengerAPI) {
                         PassengerAPI papi = (PassengerAPI) passenger;
                         passengerData.put("documentType", papi.getDocumentType());
@@ -276,14 +321,27 @@ public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
     }
 }
 
+/**
+ * Adds an SSR code to a passenger.
+ *
+ * @param passengerId The ID of the passenger to add the SSR code to.
+ * @param request     A map containing the SSR code.
+ * @return ResponseEntity indicating the success or failure of the operation.
+ */
 @PostMapping("/{passengerId}/add-srr-code")
 public ResponseEntity<?> addSrrCode(@PathVariable String passengerId, @RequestBody Map<String, String> request) {
     String srrCode = request.get("srrCode");
-    // Implementacja dodawania kodu SSR
+    // TODO: Implement adding SSR code logic
     return ResponseEntity.ok().build();
 }
 
-// Nowa metoda do aktualizacji komentarza
+/**
+ * Adds a comment to a passenger.
+ *
+ * @param passengerId The ID of the passenger to add the comment to.
+ * @param newComment  The comment to add.
+ * @return ResponseEntity with the updated passenger or a not found status.
+ */
 @PutMapping("/{id}/add-comment")
 public ResponseEntity<Passenger> addComment(@PathVariable("id") String passengerId, @RequestBody Comment newComment) {
     Optional<Passenger> passengerOpt = passengerRepository.findById(passengerId);
@@ -298,7 +356,12 @@ public ResponseEntity<Passenger> addComment(@PathVariable("id") String passenger
     return ResponseEntity.ok(passenger);
 }
 
-
+/**
+ * Assigns a seat to a passenger.
+ *
+ * @param request The SeatAssignmentRequest containing flight ID, passenger ID, and seat number.
+ * @return ResponseEntity indicating the success or failure of the seat assignment.
+ */
 @PostMapping("{passengerId}/assign-seat")
 public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) {
     try {
@@ -310,6 +373,12 @@ public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) 
     }
 }
 
+/**
+ * Releases a seat assigned to a passenger.
+ *
+ * @param request The SeatAssignmentRequest containing flight ID, passenger ID, and seat number.
+ * @return ResponseEntity indicating the success or failure of the seat release.
+ */
 @PostMapping("/release-seat")
 public ResponseEntity<?> releaseSeat(@RequestBody SeatAssignmentRequest request) {
     try {
@@ -321,6 +390,13 @@ public ResponseEntity<?> releaseSeat(@RequestBody SeatAssignmentRequest request)
     }
 }
 
+/**
+ * Boards a list of passengers for a specific flight.
+ *
+ * @param flightId     The ID of the flight.
+ * @param passengerIds A list of passenger IDs to board.
+ * @return ResponseEntity with the updated passenger details or an error message.
+ */
 @PutMapping("/flights/{flightId}/board-passengers")
 public ResponseEntity<?> boardPassengers(@PathVariable String flightId, @RequestBody List<String> passengerIds) {
     try {
@@ -377,13 +453,19 @@ public ResponseEntity<?> boardPassengers(@PathVariable String flightId, @Request
     }
 }
 
+/**
+ * Retrieves a filtered list of passengers with SSR details for a given flight based on status.
+ *
+ * @param flightId The ID of the flight to retrieve passengers for.
+ * @return ResponseEntity with a filtered list of passengers and their details.
+ */
 @GetMapping("/flights/{flightId}/passengers-with-srr-filtered")
 public ResponseEntity<?> getFilteredPassengersWithSrr(@PathVariable String flightId) {
     try {
-        // Pobierz wszystkich pasażerów dla danego lotu
+        // Get all passengers for the flight
         List<Passenger> allPassengers = passengerRepository.findByFlightId(flightId);
 
-        // Filtruj pasażerów po statusie
+        // Filter passengers by status
         List<Passenger> filteredPassengers = allPassengers.stream()
                 .filter(passenger -> {
                     String status = passenger.getStatus();
@@ -391,11 +473,11 @@ public ResponseEntity<?> getFilteredPassengersWithSrr(@PathVariable String fligh
                 })
                 .collect(Collectors.toList());
 
-        // Przekształć pasażerów do formatu odpowiedzi
+        // Transform passengers to response format
         List<Map<String, Object>> passengersWithDetails = filteredPassengers.stream()
                 .map(passenger -> {
                     Map<String, Object> passengerData = new HashMap<>();
-                    // Podstawowe dane
+                    // Basic data
                     passengerData.put("id", passenger.getId());
                     passengerData.put("name", passenger.getName());
                     passengerData.put("surname", passenger.getSurname());
@@ -404,7 +486,7 @@ public ResponseEntity<?> getFilteredPassengersWithSrr(@PathVariable String fligh
                     passengerData.put("title", passenger.getTitle());
                     passengerData.put("seatNumber", passenger.getSeatNumber());
 
-                    // Bagaże
+                    // Baggage
                     List<Map<String, Object>> baggageDetails = new ArrayList<>();
                     if (passenger.getBaggageList() != null) {
                         for (Baggage baggage : passenger.getBaggageList()) {
@@ -417,15 +499,15 @@ public ResponseEntity<?> getFilteredPassengersWithSrr(@PathVariable String fligh
                     }
                     passengerData.put("baggageList", baggageDetails);
 
-                    // Komentarze
+                    // Comments
                     passengerData.put("comments", passenger.getComments());
 
-                    // SSR kody
+                    // SSR codes
                     passengerData.put("srrCodes", passenger.getSRRCodes());
 
                     passengerData.put("flightId", passenger.getFlightId());
 
-                    // Dane dokumentów (jeśli to PassengerAPI)
+                    // Document data (if it's PassengerAPI)
                     if (passenger instanceof PassengerAPI) {
                         PassengerAPI papi = (PassengerAPI) passenger;
                         passengerData.put("documentType", papi.getDocumentType());

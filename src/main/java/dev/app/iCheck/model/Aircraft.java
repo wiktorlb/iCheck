@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Aircraft {
     @Id
     private String id; // np. "SP-LWC"
-    private String planeId; // Referencja do modelu, np. "B737-800"
+    private String planeId; // Plane model reference, np. "B737-800"
     private String airline; // np. "LOT Polish Airlines"
 
     public Aircraft(String id, String planeId, String airline) {

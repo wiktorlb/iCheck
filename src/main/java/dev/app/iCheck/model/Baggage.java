@@ -44,7 +44,6 @@ public class Baggage {
         this.type = type;
     }
 
-    // Używamy enuma zamiast Stringa
     public enum BaggageType {
         BAG,
         HAND_LUGGAGE,

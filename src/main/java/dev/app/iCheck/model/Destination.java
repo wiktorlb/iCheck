@@ -23,11 +23,9 @@ public class Destination {
         this.name = name;
     }
 
-    // Konstruktor domyślny (opcja)
     public Destination() {
     }
 
-    // Konstruktor z parametrami (opcja)
     public Destination(String id, String name) {
         this.id = id;
         this.name = name;

@@ -17,6 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controller class for handling user authentication, including login and registration.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -28,46 +31,56 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
-    // Endpoint do logowania, zwraca token JWT
+    /**
+     * Endpoint for user login.
+     *
+     * @param loginRequest The request body containing username and password.
+     * @return ResponseEntity with a JWT token upon successful login or an error message.
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
-            // Uzyskujemy token z serwisu
+            // Get token from the service
             String token = authService.loginUser(loginRequest.getUsername(), loginRequest.getPassword());
 
-            // Jeżeli token jest poprawny, zwracamy go w odpowiedzi
+            // If the token is valid, return it in the response
             if (token != null) {
                 return ResponseEntity.ok(new LoginResponse(token));
             } else {
-                // Jeśli token jest null, oznacza to błąd logowania
+                // If token is null, it means login failed
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
             }
         } catch (Exception e) {
-            // W przypadku błędów zwróć odpowiedni status
+            // Return appropriate status in case of errors
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
         }
     }
 
-    // Endpoint do rejestracji użytkownika
+    /**
+     * Endpoint for user registration.
+     *
+     * @param user The User object containing registration details.
+     * @return ResponseEntity indicating successful registration or an error message.
+     */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
-            // Walidacja unikalności email
+            // Validate unique email
             Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
             if (existingUser.isPresent()) {
                 return ResponseEntity.badRequest().body("Email already exists: " + user.getEmail());
             }
 
-            // Losowanie unikalnego 6-cyfrowego username
+            // Generate unique 6-digit username
             String username = generateUniqueUsername();
             user.setUsername(username);
 
-            // Ustawienie domyślnych wartości
+            // Set default values
             user.setRoles(Collections.singletonList("USER"));
             user.setCreatedAt(Instant.now());
             user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-            // Zapis użytkownika w bazie
+            // Save user to database
             userRepository.save(user);
 
             return ResponseEntity.ok("User registered successfully");
@@ -76,13 +89,17 @@ public class AuthController {
         }
     }
 
-// Funkcja do losowania unikalnego 6-cyfrowego username
+/**
+ * Generates a unique 6-digit username.
+ *
+ * @return A unique 6-digit username string.
+ */
 private String generateUniqueUsername() {
     Random random = new Random();
     String username;
     do {
-        username = String.format("%06d", random.nextInt(1000000)); // 6-cyfrowe username
-    } while (userRepository.existsByUsername(username)); // Sprawdzamy, czy username jest unikalny
+        username = String.format("%06d", random.nextInt(1000000)); // 6-digit username
+    } while (userRepository.existsByUsername(username)); // Check if username is unique
     return username;
 }
 }

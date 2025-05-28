@@ -9,18 +9,17 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(Exception.class) // Przechwytujemy wszystkie wyjątki
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) {
-        // Możesz logować wyjątek tutaj, jeśli chcesz
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Wystąpił błąd: " + e.getMessage());
     }
 
-    @ExceptionHandler(UsernameNotFoundException.class) // Obsługa specyficznego wyjątku
+    @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<String> handleUsernameNotFound(UsernameNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Użytkownik nie znaleziony: " + e.getMessage());
     }
 
-    @ExceptionHandler(RuntimeException.class) // Obsługa RuntimeException (np. błędne dane logowania)
+    @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeException(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Nieprawidłowe dane: " + e.getMessage());
     }

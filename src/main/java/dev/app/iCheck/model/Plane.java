@@ -10,31 +10,15 @@ public class Plane {
     @Id
     private String id;
     private String model;
-/*     private List<List<String>> seatMap; */
 private List<String> seatMap;
-    private Set<String> occupiedSeats = new HashSet<>(); // Przechowuje zajęte miejsca
+    private Set<String> occupiedSeats = new HashSet<>();
 
     public Plane(String id, String model) {
         this.id = id;
         this.model = model;
-        this.seatMap = initializeSeatMap(); // Inicjalizacja mapy miejsc
+        this.seatMap = initializeSeatMap();
     }
 
-/*  private List<String> initializeSeatMap() {
-    List<String> seatMap = new ArrayList<>();
-    char[] seatLetters = { 'A', 'B', 'C', 'D', 'E', 'F' };
-
-    for (int row = 1; row <= 22; row++) {
-        StringBuilder rowSeats = new StringBuilder(row + " ");
-        for (int i = 0; i < seatLetters.length; i++) {
-            rowSeats.append(seatLetters[i]);
-            if (i == 2)
-                rowSeats.append(" "); // Podział na ABC i DEF
-        }
-        seatMap.add(rowSeats.toString());
-    }
-    return seatMap;
-} */
 private List<String> initializeSeatMap() {
     List<String> seatMap = new ArrayList<>();
     char[] seatLetters = { 'A', 'B', 'C', 'D', 'E', 'F' };
@@ -57,18 +41,18 @@ private List<String> initializeSeatMap() {
 }
 
     public boolean isSeatAvailable(String seatNumber) {
-        return !occupiedSeats.contains(seatNumber); // Jeśli miejsce nie jest w zbiorze, to jest dostępne
+        return !occupiedSeats.contains(seatNumber);
     }
 
     public void assignSeat(String seatNumber) {
         if (!isSeatAvailable(seatNumber)) {
             throw new IllegalArgumentException("Seat " + seatNumber + " is already occupied!");
         }
-        occupiedSeats.add(seatNumber); // Dodaje miejsce do listy zajętych
+        occupiedSeats.add(seatNumber);
     }
 
     public void freeSeat(String seatNumber) {
-        occupiedSeats.remove(seatNumber); // Usuwa miejsce z listy zajętych
+        occupiedSeats.remove(seatNumber);
     }
 
     public Set<String> getOccupiedSeats() {
@@ -94,14 +78,6 @@ private List<String> initializeSeatMap() {
     public void setModel(String model) {
         this.model = model;
     }
-
-/*     public List<List<String>> getSeatMap() {
-        return seatMap;
-    }
-
-    public void setSeatMap(List<List<String>> seatMap) {
-        this.seatMap = seatMap;
-    } */
 
     public List<String> getSeatMap() {
     return seatMap;
