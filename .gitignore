@@ -37,3 +37,6 @@ out/
 
 ### Target ###
 target/
+node_modules/
+
+iCheckClient/build
