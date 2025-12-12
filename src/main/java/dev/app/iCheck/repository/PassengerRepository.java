@@ -7,4 +7,8 @@ import java.util.List;
 
 public interface PassengerRepository extends MongoRepository<Passenger, String> {
     List<Passenger> findByFlightId(String flightId);
+
+    long countByFlightId(String flightId);
+
+    long countByFlightIdAndStatus(String flightId, String status);
 }

@@ -122,7 +122,7 @@ Flight newFlight = new Flight(
         flight.getPassengers());
 
 // Set default status
-newFlight.setStatus("Prepare");
+newFlight.setStatus(Flight.FlightStatus.PREPARE.name());
 
 // Save the new flight to the database
 flightRepository.save(newFlight);
@@ -195,26 +195,80 @@ return ResponseEntity.ok(newFlight);
      * @return ResponseEntity indicating the success or failure of the status update.
      */
     @PutMapping("/{flightId}/status")
-    public ResponseEntity<?> updateFlightStatus(@PathVariable String flightId, @RequestBody Map<String, String> body) {
-        String newStatus = body.get("newStatus");
+    public ResponseEntity<?> updateFlightStatus(@PathVariable String flightId, @RequestBody Map<String, Object> body) {
+        String newStatus = body.get("newStatus") != null ? body.get("newStatus").toString() : null;
+        Boolean editMode = body.get("editModeEnabled") != null
+                ? Boolean.valueOf(body.get("editModeEnabled").toString())
+                : null;
 
         try {
-            // Validate status
-            Flight.FlightStatus status = Flight.FlightStatus.valueOf(newStatus.toUpperCase());
-
-            Flight flight = flightRepository.findById(flightId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
-
-            flight.setStatus(newStatus);
-            flightRepository.save(flight);
-
-            return ResponseEntity.ok("Flight status updated to: " + newStatus);
+            Flight updatedFlight = flightService.updateFlightStatus(flightId, newStatus, editMode);
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", updatedFlight.getId());
+            response.put("status", updatedFlight.getStatus());
+            response.put("editModeEnabled", updatedFlight.isEditModeEnabled());
+            return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body("Invalid status. Allowed values: PREPARE, OPEN, CLOSED, FINALIZED.");
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error updating flight status: " + e.getMessage());
+        }
+    }
+
+    public static class EditModeRequest {
+        private Boolean enabled;
+
+        public Boolean getEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(Boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
+    @PutMapping("/{flightId}/edit-mode")
+    public ResponseEntity<?> updateEditMode(@PathVariable String flightId, @RequestBody EditModeRequest request) {
+        if (request == null || request.getEnabled() == null) {
+            return ResponseEntity.badRequest().body("Missing 'enabled' flag in request body.");
+        }
+
+        try {
+            Flight updatedFlight = flightService.setEditMode(flightId, request.getEnabled());
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", updatedFlight.getId());
+            response.put("status", updatedFlight.getStatus());
+            response.put("editModeEnabled", updatedFlight.isEditModeEnabled());
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error updating edit mode: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/{flightId}/close-when-ready")
+    public ResponseEntity<?> closeFlightWhenReady(@PathVariable String flightId) {
+        try {
+            Flight closedFlight = flightService.closeFlightWhenAllProcessed(flightId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", closedFlight.getId());
+            response.put("status", closedFlight.getStatus());
+            response.put("editModeEnabled", closedFlight.isEditModeEnabled());
+            response.put("message", "Flight closed. All passengers are either BOARDED or OFF.");
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error closing flight: " + e.getMessage());
         }
     }
 
@@ -239,6 +293,7 @@ return ResponseEntity.ok(newFlight);
             flightDetails.put("seatMap", flight.getSeatMap());
             flightDetails.put("occupiedSeats", flight.getOccupiedSeats());
             flightDetails.put("planeId", flight.getPlaneId());
+            flightDetails.put("editModeEnabled", flight.isEditModeEnabled());
 
             return ResponseEntity.ok(flightDetails);
         } catch (Exception e) {

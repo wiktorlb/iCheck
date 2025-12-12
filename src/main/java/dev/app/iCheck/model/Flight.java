@@ -24,6 +24,7 @@ private List<String> seatMap = new ArrayList<>();
     private String planeId;
     private Destination destination;
     private List<Passenger> passengers = new ArrayList<>();
+    private boolean editModeEnabled = true;
 
     public Flight() {
     }
@@ -42,6 +43,7 @@ private List<String> seatMap = new ArrayList<>();
         this.seatMap = seatMap;
         this.occupiedSeats = occupiedSeats;
         this.passengers = passengers;
+        this.editModeEnabled = true;
     }
  */
 public Flight(String id, String flightNumber, String route, String status, String departureDate,
@@ -164,6 +166,14 @@ public void setSeatMap(List<String> seatMap) {
         this.passengers = passengers;
     }
 
+    public boolean isEditModeEnabled() {
+        return editModeEnabled;
+    }
+
+    public void setEditModeEnabled(boolean editModeEnabled) {
+        this.editModeEnabled = editModeEnabled;
+    }
+
     @Override
     public String toString() {
         return "Flight{" +
@@ -176,6 +186,7 @@ public void setSeatMap(List<String> seatMap) {
                 ", aircraftId='" + aircraftId + '\'' +
                 ", planeId='" + planeId + '\'' +
                 ", seatMap=" + seatMap +
+                ", editModeEnabled=" + editModeEnabled +
                 '}';
     }
 

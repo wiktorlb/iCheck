@@ -1,6 +1,7 @@
 package dev.app.iCheck.service;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,80 @@ public class FlightService {
         } else {
             throw new RuntimeException("Flight not found");
         }
+    }
+
+    /**
+     * Updates the status and edit mode flag for a given flight.
+     *
+     * @param flightId         flight identifier
+     * @param newStatus        optional new status
+     * @param editModeEnabled  optional edit mode flag
+     * @return updated flight entity
+     */
+    public Flight updateFlightStatus(String flightId, String newStatus, Boolean editModeEnabled) {
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
+
+        if (newStatus != null && !newStatus.trim().isEmpty()) {
+            String normalized = newStatus.trim().toUpperCase(Locale.ROOT);
+            Flight.FlightStatus status = Flight.FlightStatus.valueOf(normalized);
+            flight.setStatus(status.name());
+
+            // Automatically lock edit mode when closing/finalizing
+            if (status == Flight.FlightStatus.CLOSED || status == Flight.FlightStatus.FINALIZED) {
+                flight.setEditModeEnabled(false);
+            }
+        }
+
+        if (editModeEnabled != null) {
+            flight.setEditModeEnabled(editModeEnabled);
+        }
+
+        return flightRepository.save(flight);
+    }
+
+    /**
+     * Explicitly toggles edit mode for the flight.
+     *
+     * @param flightId flight identifier
+     * @param enabled  target edit mode flag
+     * @return updated flight
+     */
+    public Flight setEditMode(String flightId, boolean enabled) {
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
+
+        flight.setEditModeEnabled(enabled);
+        return flightRepository.save(flight);
+    }
+
+    /**
+     * Closes a flight when every passenger has been processed (BOARDED or OFF).
+     *
+     * @param flightId flight identifier
+     * @return updated flight entity
+     */
+    public Flight closeFlightWhenAllProcessed(String flightId) {
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
+
+        long totalPassengers = passengerRepository.countByFlightId(flightId);
+        long completedPassengers = passengerRepository.countByFlightIdAndStatus(flightId, "BOARDED")
+                + passengerRepository.countByFlightIdAndStatus(flightId, "OFF");
+
+        if (totalPassengers == 0) {
+            throw new IllegalStateException("Cannot close flight without passengers.");
+        }
+
+        if (completedPassengers < totalPassengers) {
+            throw new IllegalStateException(
+                    "Flight cannot be closed. Not all passengers are BOARDED or OFF. Completed: "
+                            + completedPassengers + "/" + totalPassengers);
+        }
+
+        flight.setStatus(Flight.FlightStatus.CLOSED.name());
+        flight.setEditModeEnabled(false);
+        return flightRepository.save(flight);
     }
 
     /**
