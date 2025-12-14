@@ -311,6 +311,7 @@ public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
                     // Document data (if it's PassengerAPI)
                     if (passenger instanceof PassengerAPI) {
                         PassengerAPI papi = (PassengerAPI) passenger;
+                        passengerData.put("dateOfBirth", papi.getDateOfBirth());
                         passengerData.put("documentType", papi.getDocumentType());
                         passengerData.put("citizenship", papi.getCitizenship());
                         passengerData.put("serialName", papi.getSerialName());
@@ -520,6 +521,7 @@ public ResponseEntity<?> getFilteredPassengersWithSrr(@PathVariable String fligh
                     // Document data (if it's PassengerAPI)
                     if (passenger instanceof PassengerAPI) {
                         PassengerAPI papi = (PassengerAPI) passenger;
+                        passengerData.put("dateOfBirth", papi.getDateOfBirth());
                         passengerData.put("documentType", papi.getDocumentType());
                         passengerData.put("citizenship", papi.getCitizenship());
                         passengerData.put("serialName", papi.getSerialName());
