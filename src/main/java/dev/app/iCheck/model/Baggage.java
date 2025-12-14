@@ -9,6 +9,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "baggage")
 public class Baggage {
 
+    public Baggage() {
+        // Default constructor required for serialization/deserialization
+    }
+
     @Id
     private String id;
     private double weight;

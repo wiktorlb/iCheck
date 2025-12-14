@@ -28,6 +28,10 @@ private List<Comment> comments = new ArrayList<>();
 private String seatNumber;
 
 public static class Comment {
+    public Comment() {
+        // Default constructor for serialization/deserialization
+    }
+
     private String text;
     private String date;
     private String addedBy;

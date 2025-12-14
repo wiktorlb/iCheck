@@ -129,25 +129,34 @@ public Flight(String id, String flightNumber, String route, String status, Strin
         return occupiedSeats;
     } */
    public List<String> getOccupiedSeats() {
+    if (occupiedSeats == null) {
+        occupiedSeats = new ArrayList<>();
+    }
     return new ArrayList<>(occupiedSeats);
 }
 
     public void setOccupiedSeats(List<String> occupiedSeats) {
-        this.occupiedSeats = occupiedSeats;
+        this.occupiedSeats = occupiedSeats != null ? occupiedSeats : new ArrayList<>();
     }
     public boolean isSeatOccupied(String seat) {
-        return occupiedSeats.contains(seat);
+        return occupiedSeats != null && occupiedSeats.contains(seat);
     }
 
     public void addSeat(String seat) {
+        if (occupiedSeats == null) {
+            occupiedSeats = new ArrayList<>();
+        }
         occupiedSeats.add(seat);
     }
    public List<String> getSeatMap() {
+    if (seatMap == null) {
+        seatMap = new ArrayList<>();
+    }
     return seatMap;
 }
 
 public void setSeatMap(List<String> seatMap) {
-    this.seatMap = seatMap;
+    this.seatMap = seatMap != null ? seatMap : new ArrayList<>();
 }
 
     public Destination getDestination() {

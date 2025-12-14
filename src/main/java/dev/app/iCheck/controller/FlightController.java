@@ -304,13 +304,15 @@ return ResponseEntity.ok(newFlight);
    /**
     * Assigns a seat to a passenger for a specific flight.
     *
-    * @param request The SeatAssignmentRequest containing flight ID, passenger ID, and seat number.
+    * @param flightId The ID of the flight.
+    * @param request The SeatAssignmentRequest containing passenger ID, and seat number.
     * @return ResponseEntity indicating the success or failure of the seat assignment.
     */
-   @PostMapping("/assign-seat")
-public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) {
+   @PostMapping("/{flightId}/assign-seat")
+public ResponseEntity<?> assignSeat(@PathVariable String flightId, @RequestBody SeatAssignmentRequest request) {
     try {
-        String result = flightService.assignSeat(request.getFlightId(), request.getPassengerId(),
+        String targetFlightId = flightId != null ? flightId : request.getFlightId();
+        String result = flightService.assignSeat(targetFlightId, request.getPassengerId(),
                 request.getSeatNumber());
         return ResponseEntity.ok(result);
     } catch (Exception e) {

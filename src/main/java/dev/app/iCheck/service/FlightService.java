@@ -161,6 +161,13 @@ public class FlightService {
         Flight flight = flightRepository.findById(flightId)
                 .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
 
+        if (flight.getSeatMap() == null || flight.getSeatMap().isEmpty()) {
+            Plane plane = planeRepository.findById(flight.getPlaneId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Plane not found for flight"));
+            flight.setSeatMap(plane.getSeatMap());
+            flightRepository.save(flight);
+        }
+
         Passenger passenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));
 

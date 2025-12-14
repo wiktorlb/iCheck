@@ -210,16 +210,24 @@ public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String pas
  * @param status      The new status for the passenger.
  * @return ResponseEntity with the updated passenger or an error message.
  */
+@PostMapping("/{passengerId}/update-status")
 @PutMapping("/{passengerId}/status")
-public ResponseEntity<?> updatePassengerStatus(@PathVariable String passengerId, @RequestBody String status) {
+public ResponseEntity<?> updatePassengerStatus(@PathVariable String passengerId, @RequestBody Map<String, String> statusPayload) {
     try {
         Passenger passenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
 
-        passenger.setStatus(status.replaceAll("[\"{}]", "")); // Remove JSON quotes and braces
+        String status = statusPayload.get("status");
+        if (status == null || status.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Status value is required");
+        }
+
+        passenger.setStatus(status.trim());
 
         passengerRepository.save(passenger);
         return ResponseEntity.ok(passenger);
+    } catch (ResourceNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error updating passenger status: " + e.getMessage());
@@ -342,6 +350,7 @@ public ResponseEntity<?> addSrrCode(@PathVariable String passengerId, @RequestBo
  * @param newComment  The comment to add.
  * @return ResponseEntity with the updated passenger or a not found status.
  */
+@PostMapping("/{id}/add-comment")
 @PutMapping("/{id}/add-comment")
 public ResponseEntity<Passenger> addComment(@PathVariable("id") String passengerId, @RequestBody Comment newComment) {
     Optional<Passenger> passengerOpt = passengerRepository.findById(passengerId);
@@ -363,9 +372,10 @@ public ResponseEntity<Passenger> addComment(@PathVariable("id") String passenger
  * @return ResponseEntity indicating the success or failure of the seat assignment.
  */
 @PostMapping("{passengerId}/assign-seat")
-public ResponseEntity<?> assignSeat(@RequestBody SeatAssignmentRequest request) {
+public ResponseEntity<?> assignSeat(@PathVariable String passengerId, @RequestBody SeatAssignmentRequest request) {
     try {
-        String result = flightService.assignSeat(request.getFlightId(), request.getPassengerId(),
+        String targetPassengerId = passengerId != null ? passengerId : request.getPassengerId();
+        String result = flightService.assignSeat(request.getFlightId(), targetPassengerId,
                 request.getSeatNumber());
         return ResponseEntity.ok(result);
     } catch (Exception e) {
