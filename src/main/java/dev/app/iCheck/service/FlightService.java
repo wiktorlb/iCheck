@@ -1,8 +1,10 @@
 package dev.app.iCheck.service;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -193,6 +195,63 @@ public class FlightService {
         flightRepository.save(flight);
 
         return "Miejsce " + seatNumber + " zostało przypisane do pasażera " + passenger.getName();
+    }
+
+    /**
+     * Assigns the first available seat from the flight's seat map to the passenger.
+     * Used when a passenger gets accepted and doesn't have a pre-selected seat.
+     *
+     * @param flightId    the flight identifier
+     * @param passengerId the passenger identifier
+     * @return the seat number that has been assigned
+     */
+    public String assignFirstAvailableSeat(String flightId, String passengerId) {
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
+
+        if (flight.getSeatMap() == null || flight.getSeatMap().isEmpty()) {
+            Plane plane = planeRepository.findById(flight.getPlaneId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Plane not found for flight"));
+            flight.setSeatMap(plane.getSeatMap());
+            flightRepository.save(flight);
+        }
+
+        Passenger passenger = passengerRepository.findById(passengerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));
+
+        if (passenger.getSeatNumber() != null && !passenger.getSeatNumber().isBlank()) {
+            return passenger.getSeatNumber();
+        }
+
+        Set<String> occupiedSeats = new HashSet<>(flight.getOccupiedSeats());
+        passengerRepository.findByFlightId(flightId).forEach(existingPassenger -> {
+            if (existingPassenger.getSeatNumber() != null && !existingPassenger.getSeatNumber().isBlank()) {
+                occupiedSeats.add(existingPassenger.getSeatNumber());
+            }
+        });
+
+        for (String row : flight.getSeatMap()) {
+            if (row == null || row.isBlank()) {
+                continue;
+            }
+            String[] seats = row.split(",");
+            for (String seat : seats) {
+                String seatNumber = seat.trim();
+                if (seatNumber.isEmpty()) {
+                    continue;
+                }
+                if (!occupiedSeats.contains(seatNumber)) {
+                    passenger.setSeatNumber(seatNumber);
+                    passengerRepository.save(passenger);
+
+                    flight.addSeat(seatNumber);
+                    flightRepository.save(flight);
+                    return seatNumber;
+                }
+            }
+        }
+
+        throw new IllegalStateException("Brak dostępnych miejsc w tym locie!");
     }
 
     /**

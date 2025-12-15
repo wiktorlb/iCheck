@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,9 +19,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dev.app.iCheck.exception.ResourceNotFoundException;
 import dev.app.iCheck.model.Baggage;
@@ -37,6 +42,7 @@ import dev.app.iCheck.service.FlightService;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Controller class for managing passenger-related operations.
@@ -53,6 +59,8 @@ public class PassengerController {
     private FlightService flightService;
     @Autowired
     private FlightRepository flightRepository;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     /**
      * Uploads a list of passengers from a file for a specific flight.
@@ -210,28 +218,77 @@ public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String pas
  * @param status      The new status for the passenger.
  * @return ResponseEntity with the updated passenger or an error message.
  */
-@PostMapping("/{passengerId}/update-status")
-@PutMapping("/{passengerId}/status")
-public ResponseEntity<?> updatePassengerStatus(@PathVariable String passengerId, @RequestBody Map<String, String> statusPayload) {
+@RequestMapping(value = { "/{passengerId}/update-status", "/{passengerId}/status" }, method = { RequestMethod.POST,
+        RequestMethod.PUT }, consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE })
+public ResponseEntity<?> updatePassengerStatus(@PathVariable String passengerId,
+        @RequestBody(required = false) String rawBody, HttpServletRequest request) {
     try {
         Passenger passenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
 
-        String status = statusPayload.get("status");
+        String status = extractStatusValue(rawBody, request != null ? request.getContentType() : null);
         if (status == null || status.isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Status value is required");
         }
 
-        passenger.setStatus(status.trim());
+        status = status.trim().toUpperCase();
+        passenger.setStatus(status);
 
         passengerRepository.save(passenger);
+
+        String assignedSeat = null;
+        boolean needsSeat = "ACC".equalsIgnoreCase(status)
+                && (passenger.getSeatNumber() == null || passenger.getSeatNumber().isBlank())
+                && passenger.getFlightId() != null && !passenger.getFlightId().isBlank();
+
+        if (needsSeat) {
+            assignedSeat = flightService.assignFirstAvailableSeat(passenger.getFlightId(), passenger.getId());
+            passenger = passengerRepository.findById(passengerId).orElse(passenger);
+        }
+
+        if (assignedSeat != null) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("passenger", passenger);
+            response.put("assignedSeat", assignedSeat);
+            return ResponseEntity.ok(response);
+        }
+
         return ResponseEntity.ok(passenger);
     } catch (ResourceNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    } catch (IllegalStateException | IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error updating passenger status: " + e.getMessage());
     }
+}
+
+private String extractStatusValue(String rawBody, String contentType) {
+    if (rawBody == null) {
+        return null;
+    }
+
+    String trimmed = rawBody.trim();
+    if (trimmed.isEmpty()) {
+        return null;
+    }
+
+    boolean shouldParseJson = contentType != null && contentType.contains(MediaType.APPLICATION_JSON_VALUE)
+            || trimmed.startsWith("{");
+
+    if (shouldParseJson) {
+        try {
+            JsonNode node = objectMapper.readTree(trimmed);
+            if (node.hasNonNull("status")) {
+                return node.get("status").asText();
+            }
+        } catch (Exception e) {
+            // Fall back to plain text parsing below
+        }
+    }
+
+    return trimmed.replace("\"", "");
 }
 
 /**

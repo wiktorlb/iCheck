@@ -8,6 +8,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -43,12 +44,11 @@ public class SecurityConfig {
                 .requestMatchers("/flightboard/**").authenticated() // Wymaga autoryzacji
                 .requestMatchers("/register", "/add-flight").hasRole("ADMIN") // Dostęp tylko dla administratorów
                 .requestMatchers("/management/**").hasRole("ADMIN")
-                .requestMatchers("api/users").hasRole("ADMIN") // Tylko admin może zarządzać użytkownikami
+                .requestMatchers("/api/users").hasRole("ADMIN") // Tylko admin może zarządzać użytkownikami
                 .requestMatchers("/add-passenger").hasAnyRole("LEADER", "ADMIN") // Leader i admin mogą dodawać
                                                                                  // pasażerów
                 .requestMatchers("/delete-flight").hasRole("ADMIN") // Tylko admin może usuwać loty
-                .requestMatchers("/update-status").hasAnyRole("USER", "LEADER", "ADMIN") // User, Leader, Admin mogą
-                                                                                         // zmieniać status lotu
+                .requestMatchers("/api/passengers/**").hasAnyRole("USER", "LEADER", "ADMIN")
                 .anyRequest().permitAll() // Pozwól na dostęp do innych publicznych zasobów
                 .and()
                 .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class); // Dodanie filtra
