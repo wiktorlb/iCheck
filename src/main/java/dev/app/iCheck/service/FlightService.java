@@ -173,6 +173,11 @@ public class FlightService {
         Passenger passenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));
 
+        String previousSeat = passenger.getSeatNumber();
+        if (seatNumber.equals(previousSeat)) {
+            return "Passenger already assigned to seat " + seatNumber;
+        }
+
         if (flight.isSeatOccupied(seatNumber)) {
             throw new IllegalStateException("Miejsce " + seatNumber + " jest już zajęte");
         }
@@ -186,6 +191,14 @@ public class FlightService {
         }
         if (!seatExists) {
             throw new IllegalArgumentException("Nieprawidłowy numer miejsca: " + seatNumber);
+        }
+
+        // Release previous seat if any
+        if (previousSeat != null && !previousSeat.isBlank()) {
+            List<String> occupiedSeats = flight.getOccupiedSeats();
+            if (occupiedSeats.remove(previousSeat)) {
+                flight.setOccupiedSeats(occupiedSeats);
+            }
         }
 
         passenger.setSeatNumber(seatNumber);
