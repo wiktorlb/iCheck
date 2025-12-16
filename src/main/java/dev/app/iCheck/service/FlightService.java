@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,6 +36,7 @@ public class FlightService {
 
     @Autowired
     private PlaneRepository planeRepository;
+    private final ConcurrentMap<String, ReentrantLock> flightSeatLocks = new ConcurrentHashMap<>();
 
     /**
      * Retrieves all passengers for a specific flight.
@@ -219,52 +223,61 @@ public class FlightService {
      * @return the seat number that has been assigned
      */
     public String assignFirstAvailableSeat(String flightId, String passengerId) {
-        Flight flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
+        ReentrantLock lock = flightSeatLocks.computeIfAbsent(flightId, id -> new ReentrantLock());
+        lock.lock();
+        try {
+            Flight flight = flightRepository.findById(flightId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
 
-        if (flight.getSeatMap() == null || flight.getSeatMap().isEmpty()) {
-            Plane plane = planeRepository.findById(flight.getPlaneId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Plane not found for flight"));
-            flight.setSeatMap(plane.getSeatMap());
-            flightRepository.save(flight);
-        }
-
-        Passenger passenger = passengerRepository.findById(passengerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));
-
-        if (passenger.getSeatNumber() != null && !passenger.getSeatNumber().isBlank()) {
-            return passenger.getSeatNumber();
-        }
-
-        Set<String> occupiedSeats = new HashSet<>(flight.getOccupiedSeats());
-        passengerRepository.findByFlightId(flightId).forEach(existingPassenger -> {
-            if (existingPassenger.getSeatNumber() != null && !existingPassenger.getSeatNumber().isBlank()) {
-                occupiedSeats.add(existingPassenger.getSeatNumber());
+            if (flight.getSeatMap() == null || flight.getSeatMap().isEmpty()) {
+                Plane plane = planeRepository.findById(flight.getPlaneId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Plane not found for flight"));
+                flight.setSeatMap(plane.getSeatMap());
+                flightRepository.save(flight);
             }
-        });
 
-        for (String row : flight.getSeatMap()) {
-            if (row == null || row.isBlank()) {
-                continue;
+            Passenger passenger = passengerRepository.findById(passengerId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));
+
+            if (passenger.getSeatNumber() != null && !passenger.getSeatNumber().isBlank()) {
+                return passenger.getSeatNumber();
             }
-            String[] seats = row.split(",");
-            for (String seat : seats) {
-                String seatNumber = seat.trim();
-                if (seatNumber.isEmpty()) {
+
+            Set<String> occupiedSeats = new HashSet<>(flight.getOccupiedSeats());
+            passengerRepository.findByFlightId(flightId).forEach(existingPassenger -> {
+                if (existingPassenger.getSeatNumber() != null && !existingPassenger.getSeatNumber().isBlank()) {
+                    occupiedSeats.add(existingPassenger.getSeatNumber());
+                }
+            });
+
+            for (String row : flight.getSeatMap()) {
+                if (row == null || row.isBlank()) {
                     continue;
                 }
-                if (!occupiedSeats.contains(seatNumber)) {
-                    passenger.setSeatNumber(seatNumber);
-                    passengerRepository.save(passenger);
+                String[] seats = row.split(",");
+                for (String seat : seats) {
+                    String seatNumber = seat.trim();
+                    if (seatNumber.isEmpty()) {
+                        continue;
+                    }
+                    if (!occupiedSeats.contains(seatNumber)) {
+                        passenger.setSeatNumber(seatNumber);
+                        passengerRepository.save(passenger);
 
-                    flight.addSeat(seatNumber);
-                    flightRepository.save(flight);
-                    return seatNumber;
+                        flight.addSeat(seatNumber);
+                        flightRepository.save(flight);
+                        return seatNumber;
+                    }
                 }
             }
-        }
 
-        throw new IllegalStateException("Brak dostępnych miejsc w tym locie!");
+            throw new IllegalStateException("Brak dostępnych miejsc w tym locie!");
+        } finally {
+            lock.unlock();
+            if (!lock.hasQueuedThreads()) {
+                flightSeatLocks.remove(flightId, lock);
+            }
+        }
     }
 
     /**
