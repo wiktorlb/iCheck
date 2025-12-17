@@ -63,6 +63,65 @@ public class PassengerController {
     private ObjectMapper objectMapper;
 
     /**
+     * Creates a lightweight passenger entry for a given flight.
+     *
+     * @param request A map containing flightId, name, surname, gender, title
+     * @return The created passenger
+     */
+    @PostMapping
+    public ResponseEntity<?> createPassenger(@RequestBody Map<String, String> request) {
+        try {
+            String flightId = request.get("flightId");
+            String name = request.get("name");
+            String surname = request.get("surname");
+            String gender = request.get("gender");
+            String title = request.get("title");
+
+            if (flightId == null || flightId.isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("flightId is required");
+            }
+            if (name == null || name.isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("name is required");
+            }
+            if (surname == null || surname.isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("surname is required");
+            }
+
+            Flight flight = flightRepository.findById(flightId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
+
+            String normalizedGender = gender != null ? gender.trim().toUpperCase() : "M";
+            if (!normalizedGender.equals("M") && !normalizedGender.equals("F")) {
+                normalizedGender = "M";
+            }
+
+            String normalizedTitle = title != null ? title.trim().toUpperCase() : "MR";
+            if (!normalizedTitle.equals("MR") && !normalizedTitle.equals("MRS")) {
+                normalizedTitle = "MR";
+            }
+
+            Passenger passenger = new Passenger(
+                    null,
+                    flight.getId(),
+                    name.trim(),
+                    surname.trim(),
+                    normalizedGender,
+                    "NONE",
+                    normalizedTitle,
+                    null
+            );
+
+            Passenger saved = passengerRepository.save(passenger);
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error creating passenger: " + e.getMessage());
+        }
+    }
+
+    /**
      * Uploads a list of passengers from a file for a specific flight.
      *
      * @param flightId The ID of the flight to add passengers to.
