@@ -201,12 +201,18 @@ return ResponseEntity.ok(newFlight);
                 ? Boolean.valueOf(body.get("editModeEnabled").toString())
                 : null;
 
+        String boardingGate = body.get("boardingGate") != null ? body.get("boardingGate").toString() : null;
+        String radioNumber = body.get("radioNumber") != null ? body.get("radioNumber").toString() : null;
+
         try {
-            Flight updatedFlight = flightService.updateFlightStatus(flightId, newStatus, editMode);
+            Flight updatedFlight = flightService.updateFlightStatus(flightId, newStatus, editMode, boardingGate,
+                    radioNumber);
             Map<String, Object> response = new HashMap<>();
             response.put("id", updatedFlight.getId());
             response.put("status", updatedFlight.getStatus());
             response.put("editModeEnabled", updatedFlight.isEditModeEnabled());
+            response.put("boardingGate", updatedFlight.getBoardingGate());
+            response.put("radioNumber", updatedFlight.getRadioNumber());
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()

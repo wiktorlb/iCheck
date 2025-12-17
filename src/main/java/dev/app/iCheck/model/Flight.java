@@ -22,6 +22,8 @@ public class Flight {
 /*     private List<List<String>> seatMap = new ArrayList<>(); // Inicjalizacja */
 private List<String> seatMap = new ArrayList<>();
     private String planeId;
+    private String boardingGate;
+    private String radioNumber;
     private Destination destination;
     private List<Passenger> passengers = new ArrayList<>();
     private boolean editModeEnabled = true;
@@ -159,6 +161,22 @@ public void setSeatMap(List<String> seatMap) {
     this.seatMap = seatMap != null ? seatMap : new ArrayList<>();
 }
 
+    public String getBoardingGate() {
+        return boardingGate;
+    }
+
+    public void setBoardingGate(String boardingGate) {
+        this.boardingGate = boardingGate;
+    }
+
+    public String getRadioNumber() {
+        return radioNumber;
+    }
+
+    public void setRadioNumber(String radioNumber) {
+        this.radioNumber = radioNumber;
+    }
+
     public Destination getDestination() {
         return destination;
     }
@@ -194,6 +212,8 @@ public void setSeatMap(List<String> seatMap) {
                 ", departureTime='" + departureTime + '\'' +
                 ", aircraftId='" + aircraftId + '\'' +
                 ", planeId='" + planeId + '\'' +
+                ", boardingGate='" + boardingGate + '\'' +
+                ", radioNumber='" + radioNumber + '\'' +
                 ", seatMap=" + seatMap +
                 ", editModeEnabled=" + editModeEnabled +
                 '}';

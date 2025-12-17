@@ -62,7 +62,8 @@ public class FlightService {
      * @param editModeEnabled  optional edit mode flag
      * @return updated flight entity
      */
-    public Flight updateFlightStatus(String flightId, String newStatus, Boolean editModeEnabled) {
+    public Flight updateFlightStatus(String flightId, String newStatus, Boolean editModeEnabled, String boardingGate,
+            String radioNumber) {
         Flight flight = flightRepository.findById(flightId)
                 .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
 
@@ -79,6 +80,14 @@ public class FlightService {
 
         if (editModeEnabled != null) {
             flight.setEditModeEnabled(editModeEnabled);
+        }
+
+        if (boardingGate != null) {
+            flight.setBoardingGate(boardingGate);
+        }
+
+        if (radioNumber != null) {
+            flight.setRadioNumber(radioNumber);
         }
 
         return flightRepository.save(flight);
