@@ -296,10 +296,16 @@ return ResponseEntity.ok(newFlight);
             flightDetails.put("route", flight.getRoute());
             flightDetails.put("status", flight.getStatus()); // Changed to status
             flightDetails.put("departureTime", flight.getDepartureTime());
+            flightDetails.put("departureDate", flight.getDepartureDate());
             flightDetails.put("seatMap", flight.getSeatMap());
             flightDetails.put("occupiedSeats", flight.getOccupiedSeats());
             flightDetails.put("planeId", flight.getPlaneId());
             flightDetails.put("editModeEnabled", flight.isEditModeEnabled());
+            flightDetails.put("boardingGate", flight.getBoardingGate());
+            flightDetails.put("radioNumber", flight.getRadioNumber());
+            flightDetails.put("capacity", flight.getPlaneId() != null
+                    ? planeRepository.findById(flight.getPlaneId()).map(Plane::getSeatMap).map(List::size).orElse(null)
+                    : null);
 
             return ResponseEntity.ok(flightDetails);
         } catch (Exception e) {
