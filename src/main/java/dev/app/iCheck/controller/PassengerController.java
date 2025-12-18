@@ -342,6 +342,10 @@ public ResponseEntity<?> updatePassengerStatus(@PathVariable String passengerId,
         status = status.trim().toUpperCase();
         passenger.setStatus(status);
 
+        if ("OFF".equalsIgnoreCase(status) || "STBY".equalsIgnoreCase(status)) {
+            passenger.setBaggageList(new ArrayList<>());
+        }
+
         passengerRepository.save(passenger);
 
         String assignedSeat = null;
