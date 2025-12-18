@@ -152,6 +152,9 @@ public class PassengerController {
      * @return A list of Passenger objects created from the file data.
      * @throws IOException if an I/O error occurs while reading the file.
      */
+    private static final List<String> VALID_TITLES = Arrays.asList("MR", "MRS", "MS", "MISS", "CHLD", "CHD");
+    private static final List<String> GENDER_KEYWORDS = Arrays.asList("MALE", "M", "FEMALE", "F", "CHD", "CHILD");
+
     private List<Passenger> parseFile(MultipartFile file, String flightId) throws IOException {
         List<Passenger> passengers = new ArrayList<>();
         BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
@@ -159,30 +162,45 @@ public class PassengerController {
         String line;
         while ((line = reader.readLine()) != null) {
             // Process each line
-            String[] parts = line.trim().split("\s+"); // Split by spaces, handling multiple spaces
-            if (parts.length < 3)
+            String[] rawParts = line.trim().split("\\s+");
+            if (rawParts.length < 2)
                 continue; // Skip invalid lines
 
-            // Gender is always the last element
-            String rawGender = parts[parts.length - 1].toUpperCase();
-            String gender = rawGender.equals("FEMALE") || rawGender.equals("F") ? "F"
-                    : rawGender.equals("MALE") || rawGender.equals("M") ? "M" : "F"; // Default to "F" if unknown
+            List<String> parts = new ArrayList<>(Arrays.asList(rawParts));
+            String gender = "F"; // default fallback
+            boolean genderProvided = false;
 
-            // Determine if second-to-last element is a valid title
-            String[] validTitles = { "MR", "MRS", "CHLD" };
-            String title = "NONE";
-            if (Arrays.asList(validTitles).contains(parts[parts.length - 2])) {
-                title = parts[parts.length - 2];
+            if (!parts.isEmpty()) {
+                String lastToken = parts.get(parts.size() - 1).toUpperCase();
+                if (GENDER_KEYWORDS.contains(lastToken)) {
+                    gender = mapGender(lastToken);
+                    parts.remove(parts.size() - 1);
+                    genderProvided = true;
+                }
             }
 
-            // Surname is always first element
-            String surname = parts[0];
+            String title = "NONE";
+            if (!parts.isEmpty()) {
+                String possibleTitle = parts.get(parts.size() - 1).toUpperCase();
+                if (VALID_TITLES.contains(possibleTitle)) {
+                    title = possibleTitle;
+                    parts.remove(parts.size() - 1);
+                    if (!genderProvided) {
+                        gender = deriveGenderFromTitle(title);
+                    }
+                }
+            }
 
-            // Name is everything between surname and title
-            int nameEndIndex = title.equals("NONE") ? parts.length - 1 : parts.length - 2;
-            String name = String.join(" ", Arrays.copyOfRange(parts, 1, nameEndIndex));
+            if (parts.isEmpty()) {
+                continue;
+            }
+
+            String surname = parts.get(0);
+            String name = parts.size() > 1
+                    ? String.join(" ", parts.subList(1, parts.size()))
+                    : "";
             System.out.println("Reading from file");
-System.out.println("-----------------------");
+            System.out.println("-----------------------");
             System.out.println("Name: " + name + ", Surname: " + surname + ", Title: " + title + ", Gender: " + gender);
 
             String status = "NONE"; // Default status
@@ -192,29 +210,60 @@ System.out.println("-----------------------");
         return passengers;
     }
 
-/**
- * Updates the details of an existing passenger.
- *
- * @param passengerId         The ID of the passenger to update.
- * @param updatedPassengerAPI The PassengerAPI object containing the updated passenger data.
- * @return ResponseEntity with the updated passenger data or an error message.
- */
-@PutMapping("/{passengerId}")
-public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String passengerId,
-        @RequestBody PassengerAPI updatedPassengerAPI) {
-    try {
-        // Input data validation
-        if (passengerId == null || passengerId.trim().isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Passenger ID cannot be null or empty");
+    private String mapGender(String token) {
+        switch (token) {
+            case "MALE":
+            case "M":
+                return "M";
+            case "CHD":
+            case "CHILD":
+                return "CHD";
+            case "FEMALE":
+            case "F":
+            default:
+                return "F";
         }
+    }
 
-        if (updatedPassengerAPI == null) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Updated passenger data cannot be null");
+    private String deriveGenderFromTitle(String title) {
+        switch (title) {
+            case "MR":
+                return "M";
+            case "MRS":
+            case "MS":
+            case "MISS":
+                return "F";
+            case "CHLD":
+            case "CHD":
+                return "CHD";
+            default:
+                return "F";
         }
+    }
+
+    /**
+     * Updates details of an existing passenger.
+     *
+     * @param passengerId         The ID of the passenger to update.
+     * @param updatedPassengerAPI The passenger payload coming from the UI.
+     * @return ResponseEntity with the updated passenger data or an error message.
+     */
+    @PutMapping("/{passengerId}")
+    public ResponseEntity<?> updatePassenger(@PathVariable("passengerId") String passengerId,
+            @RequestBody PassengerAPI updatedPassengerAPI) {
+        try {
+            // Input data validation
+            if (passengerId == null || passengerId.trim().isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("Passenger ID cannot be null or empty");
+            }
+
+            if (updatedPassengerAPI == null) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body("Updated passenger data cannot be null");
+            }
 
         // Check if passenger exists in the database
         Passenger existingPassenger = passengerRepository.findById(passengerId)
