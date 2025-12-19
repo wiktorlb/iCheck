@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,10 +32,7 @@ import dev.app.iCheck.model.Flight;
 import dev.app.iCheck.model.Passenger;
 import dev.app.iCheck.model.Passenger.Comment;
 import dev.app.iCheck.model.PassengerAPI;
-import dev.app.iCheck.model.Plane;
-import dev.app.iCheck.repository.FlightRepository;
 import dev.app.iCheck.repository.PassengerRepository;
-import dev.app.iCheck.repository.PlaneRepository;
 import dev.app.iCheck.service.FlightService;
 
 import java.io.IOException;
@@ -57,8 +53,6 @@ public class PassengerController {
 
     @Autowired
     private FlightService flightService;
-    @Autowired
-    private FlightRepository flightRepository;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -87,8 +81,7 @@ public class PassengerController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("surname is required");
             }
 
-            Flight flight = flightRepository.findById(flightId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
+            Flight flight = flightService.requireEditableFlight(flightId);
 
             String normalizedGender = gender != null ? gender.trim().toUpperCase() : "M";
             if (!normalizedGender.equals("M") && !normalizedGender.equals("F")) {
@@ -115,6 +108,8 @@ public class PassengerController {
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error creating passenger: " + e.getMessage());
@@ -132,6 +127,7 @@ public class PassengerController {
     public ResponseEntity<?> uploadPassengers(@PathVariable("flightId") String flightId,
             @RequestParam("file") MultipartFile file) {
         try {
+            flightService.requireEditableFlight(flightId);
             // Process the text file
             List<Passenger> passengers = parseFile(file, flightId);
 
@@ -139,6 +135,8 @@ public class PassengerController {
             passengerRepository.saveAll(passengers);
 
             return ResponseEntity.ok("Passengers successfully added to flight with ID: " + flightId);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(500).body("An error occurred: " + e.getMessage());
         }
@@ -269,6 +267,8 @@ public class PassengerController {
         Passenger existingPassenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));
 
+        flightService.requireEditableFlight(existingPassenger.getFlightId());
+
         // Preserve existing data
         List<Baggage> existingBaggage = existingPassenger.getBaggageList();
         List<Comment> existingComments = existingPassenger.getComments();
@@ -312,6 +312,10 @@ public class PassengerController {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(e.getMessage());
+    } catch (IllegalStateException e) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(e.getMessage());
     } catch (Exception e) {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -333,6 +337,8 @@ public ResponseEntity<?> updatePassengerStatus(@PathVariable String passengerId,
     try {
         Passenger passenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
+
+        flightService.requireEditableFlight(passenger.getFlightId());
 
         String status = extractStatusValue(rawBody, request != null ? request.getContentType() : null);
         if (status == null || status.isBlank()) {
@@ -508,9 +514,32 @@ public ResponseEntity<?> getPassengersWithSrr(@PathVariable String flightId) {
  */
 @PostMapping("/{passengerId}/add-srr-code")
 public ResponseEntity<?> addSrrCode(@PathVariable String passengerId, @RequestBody Map<String, String> request) {
-    String srrCode = request.get("srrCode");
-    // TODO: Implement adding SSR code logic
-    return ResponseEntity.ok().build();
+    try {
+        String srrCode = request.get("srrCode");
+        if (srrCode == null || srrCode.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("srrCode is required");
+        }
+
+        Passenger passenger = passengerRepository.findById(passengerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
+
+        flightService.requireEditableFlight(passenger.getFlightId());
+
+        // Currently SSR codes are derived dynamically from passenger data (documents, baggage, seat, comments)
+        // so we simply acknowledge the request to keep API compatibility.
+        Map<String, Object> response = new HashMap<>();
+        response.put("passenger", passenger);
+        response.put("srrCodes", passenger.getSRRCodes());
+        response.put("message", "SSR codes are derived automatically; no manual changes were applied.");
+        return ResponseEntity.ok(response);
+    } catch (ResourceNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    } catch (IllegalStateException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error adding SSR code: " + e.getMessage());
+    }
 }
 
 /**
@@ -522,17 +551,23 @@ public ResponseEntity<?> addSrrCode(@PathVariable String passengerId, @RequestBo
  */
 @PostMapping("/{id}/add-comment")
 @PutMapping("/{id}/add-comment")
-public ResponseEntity<Passenger> addComment(@PathVariable("id") String passengerId, @RequestBody Comment newComment) {
-    Optional<Passenger> passengerOpt = passengerRepository.findById(passengerId);
-    if (passengerOpt.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+public ResponseEntity<?> addComment(@PathVariable("id") String passengerId, @RequestBody Comment newComment) {
+    try {
+        Optional<Passenger> passengerOpt = passengerRepository.findById(passengerId);
+        if (passengerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Passenger not found");
+        }
+
+        Passenger passenger = passengerOpt.get();
+        flightService.requireEditableFlight(passenger.getFlightId());
+
+        passenger.getComments().add(newComment);
+        passengerRepository.save(passenger);
+
+        return ResponseEntity.ok(passenger);
+    } catch (IllegalStateException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
-
-    Passenger passenger = passengerOpt.get();
-    passenger.getComments().add(newComment);
-    passengerRepository.save(passenger);
-
-    return ResponseEntity.ok(passenger);
 }
 
 /**
@@ -548,6 +583,8 @@ public ResponseEntity<?> assignSeat(@PathVariable String passengerId, @RequestBo
         String result = flightService.assignSeat(request.getFlightId(), targetPassengerId,
                 request.getSeatNumber());
         return ResponseEntity.ok(result);
+    } catch (IllegalStateException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error assigning seat: " + e.getMessage());
     }
@@ -565,6 +602,8 @@ public ResponseEntity<?> releaseSeat(@RequestBody SeatAssignmentRequest request)
         String result = flightService.releaseSeat(request.getFlightId(), request.getPassengerId(),
                 request.getSeatNumber());
         return ResponseEntity.ok(result);
+    } catch (IllegalStateException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error releasing seat: " + e.getMessage());
     }
@@ -580,6 +619,7 @@ public ResponseEntity<?> releaseSeat(@RequestBody SeatAssignmentRequest request)
 @PutMapping("/flights/{flightId}/board-passengers")
 public ResponseEntity<?> boardPassengers(@PathVariable String flightId, @RequestBody List<String> passengerIds) {
     try {
+        flightService.requireEditableFlight(flightId);
         // Validate input
         if (passengerIds == null || passengerIds.isEmpty()) {
             return ResponseEntity
@@ -626,6 +666,10 @@ public ResponseEntity<?> boardPassengers(@PathVariable String flightId, @Request
 
         return ResponseEntity.ok(updatedPassengers);
 
+    } catch (IllegalStateException e) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(e.getMessage());
     } catch (Exception e) {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)

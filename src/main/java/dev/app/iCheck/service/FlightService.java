@@ -55,6 +55,23 @@ public class FlightService {
     }
 
     /**
+     * Ensures the target flight exists and is not finalized, returning the entity for further use.
+     *
+     * @param flightId flight identifier
+     * @return editable flight entity
+     */
+    public Flight requireEditableFlight(String flightId) {
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with ID: " + flightId));
+
+        String status = flight.getStatus();
+        if (status != null && Flight.FlightStatus.FINALIZED.name().equalsIgnoreCase(status)) {
+            throw new IllegalStateException("Flight " + flight.getFlightNumber() + " is finalized and cannot be modified.");
+        }
+        return flight;
+    }
+
+    /**
      * Updates the status and edit mode flag for a given flight.
      *
      * @param flightId         flight identifier
@@ -145,8 +162,7 @@ public class FlightService {
      * @throws ResourceNotFoundException if the flight or passenger is not found
      */
     public void deletePassenger(String flightId, String passengerId) {
-        Flight flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found"));
+        Flight flight = requireEditableFlight(flightId);
 
         Passenger passenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found"));
@@ -173,8 +189,7 @@ public class FlightService {
      * @throws IllegalArgumentException if the seat number is invalid
      */
     public String assignSeat(String flightId, String passengerId, String seatNumber) {
-        Flight flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
+        Flight flight = requireEditableFlight(flightId);
 
         if (flight.getSeatMap() == null || flight.getSeatMap().isEmpty()) {
             Plane plane = planeRepository.findById(flight.getPlaneId())
@@ -235,8 +250,7 @@ public class FlightService {
         ReentrantLock lock = flightSeatLocks.computeIfAbsent(flightId, id -> new ReentrantLock());
         lock.lock();
         try {
-            Flight flight = flightRepository.findById(flightId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
+            Flight flight = requireEditableFlight(flightId);
 
             if (flight.getSeatMap() == null || flight.getSeatMap().isEmpty()) {
                 Plane plane = planeRepository.findById(flight.getPlaneId())
@@ -300,8 +314,7 @@ public class FlightService {
      * @throws IllegalArgumentException if the passenger does not have the seat assigned
      */
     public String releaseSeat(String flightId, String passengerId, String seatNumber) {
-        Flight flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
+        Flight flight = requireEditableFlight(flightId);
 
         Passenger passenger = passengerRepository.findById(passengerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Passenger not found with id: " + passengerId));

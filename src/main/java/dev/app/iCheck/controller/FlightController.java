@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Controller class for managing flight-related operations.
@@ -313,24 +312,26 @@ return ResponseEntity.ok(newFlight);
         }
     }
 
-   /**
-    * Assigns a seat to a passenger for a specific flight.
-    *
-    * @param flightId The ID of the flight.
-    * @param request The SeatAssignmentRequest containing passenger ID, and seat number.
-    * @return ResponseEntity indicating the success or failure of the seat assignment.
-    */
-   @PostMapping("/{flightId}/assign-seat")
-public ResponseEntity<?> assignSeat(@PathVariable String flightId, @RequestBody SeatAssignmentRequest request) {
-    try {
-        String targetFlightId = flightId != null ? flightId : request.getFlightId();
-        String result = flightService.assignSeat(targetFlightId, request.getPassengerId(),
-                request.getSeatNumber());
-        return ResponseEntity.ok(result);
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error assigning seat: " + e.getMessage());
+    /**
+     * Assigns a seat to a passenger for a specific flight.
+     *
+     * @param flightId The ID of the flight.
+     * @param request The SeatAssignmentRequest containing passenger ID, and seat number.
+     * @return ResponseEntity indicating the success or failure of the seat assignment.
+     */
+    @PostMapping("/{flightId}/assign-seat")
+    public ResponseEntity<?> assignSeat(@PathVariable String flightId, @RequestBody SeatAssignmentRequest request) {
+        try {
+            String targetFlightId = flightId != null ? flightId : request.getFlightId();
+            String result = flightService.assignSeat(targetFlightId, request.getPassengerId(),
+                    request.getSeatNumber());
+            return ResponseEntity.ok(result);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error assigning seat: " + e.getMessage());
+        }
     }
-}
 
     /**
      * Retrieves the list of occupied seats for a specific flight.
@@ -356,6 +357,8 @@ public ResponseEntity<?> assignSeat(@PathVariable String flightId, @RequestBody 
             String result = flightService.releaseSeat(request.getFlightId(), request.getPassengerId(),
                     request.getSeatNumber());
             return ResponseEntity.ok(result);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error releasing seat: " + e.getMessage());

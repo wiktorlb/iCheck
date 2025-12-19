@@ -18,6 +18,7 @@ import dev.app.iCheck.model.Baggage.BaggageType;
 import dev.app.iCheck.model.Passenger;
 import dev.app.iCheck.repository.PassengerRepository;
 import dev.app.iCheck.service.BaggageService;
+import dev.app.iCheck.service.FlightService;
 
 /**
  * Controller for managing baggage for passengers.
@@ -32,6 +33,9 @@ public class BaggageController {
 
     @Autowired
     private BaggageService baggageService;
+
+    @Autowired
+    private FlightService flightService;
 
 
 /**
@@ -59,6 +63,7 @@ public ResponseEntity<?> addBaggage(@PathVariable String passengerId, @RequestBo
         Optional<Passenger> passengerOpt = passengerRepository.findById(passengerId);
         if (passengerOpt.isPresent()) {
             Passenger passenger = passengerOpt.get();
+            flightService.requireEditableFlight(passenger.getFlightId());
 
             if (passenger.getBaggageList() == null) {
                 passenger.setBaggageList(new ArrayList<>());
@@ -72,6 +77,8 @@ public ResponseEntity<?> addBaggage(@PathVariable String passengerId, @RequestBo
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Passenger not found");
     } catch (IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid baggage type: " + baggageRequest.getBaggageType());
+    } catch (IllegalStateException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error adding baggage: " + e.getMessage());
     }
