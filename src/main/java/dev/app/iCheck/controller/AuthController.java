@@ -8,6 +8,7 @@ import dev.app.iCheck.service.AuthService;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
@@ -65,25 +66,42 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
-            // Validate unique email
-            Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
-            if (existingUser.isPresent()) {
-                return ResponseEntity.badRequest().body("Email already exists: " + user.getEmail());
+            String trimmedEmail = Optional.ofNullable(user.getEmail()).map(String::trim).orElse("");
+            if (trimmedEmail.isEmpty()) {
+                return ResponseEntity.badRequest().body("Email is required.");
             }
 
-            // Generate unique 6-digit username
-            String username = generateUniqueUsername();
-            user.setUsername(username);
+            Optional<User> emailOwner = userRepository.findByEmail(trimmedEmail);
+            if (emailOwner.isPresent()) {
+                return ResponseEntity.badRequest().body("Email already exists: " + trimmedEmail);
+            }
+            user.setEmail(trimmedEmail);
 
-            // Set default values
+            String requestedUsername = Optional.ofNullable(user.getUsername()).map(String::trim).orElse("");
+            if (requestedUsername.isEmpty()) {
+                user.setUsername(generateUniqueUsername());
+            } else if (userRepository.existsByUsername(requestedUsername)) {
+                return ResponseEntity.badRequest().body("Username already exists: " + requestedUsername);
+            } else {
+                user.setUsername(requestedUsername);
+            }
+
+            String rawPassword = Optional.ofNullable(user.getPassword()).map(String::trim).orElse("");
+            if (rawPassword.length() < 8) {
+                return ResponseEntity.badRequest().body("Password must be at least 8 characters long.");
+            }
+
             user.setRoles(Collections.singletonList("USER"));
             user.setCreatedAt(Instant.now());
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            user.setPassword(passwordEncoder.encode(rawPassword));
 
-            // Save user to database
-            userRepository.save(user);
+            User savedUser = userRepository.save(user);
 
-            return ResponseEntity.ok("User registered successfully");
+            return ResponseEntity.ok(
+                    Map.of(
+                            "message", "User registered successfully",
+                            "username", savedUser.getUsername(),
+                            "userId", savedUser.getId()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error while registering user: " + e.getMessage());
         }
